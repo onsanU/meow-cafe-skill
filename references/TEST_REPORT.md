@@ -121,7 +121,9 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | 3 | 点击"揭晓" | 推荐专属猫猫，显示匹配度 |
 | 4 | 点击"进入咖啡馆" | 进入主页，猫猫动画正常 |
 
-**截图:** [需要手动截取: 问卷页 + 结果页]
+**截图:** 
+- 问卷页: ![index-quiz](test-screenshots/index-quiz.png)
+- 咖啡馆: ![index-cafe](test-screenshots/index-cafe.png)
 
 ---
 
@@ -134,7 +136,7 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | 3 | 等待15-35秒 | 右下角聊天窗弹出消息 |
 | 4 | 点击聊天窗 | 粉色气泡回复 |
 
-**截图:** [需要手动截取: 摸摸效果 + 聊天窗]
+**截图:** ![cream](test-screenshots/cream-pet.png)
 
 ---
 
@@ -145,7 +147,7 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | 1 | 打开 orange.html | 橘色猫猫 + 游戏区域 |
 | 2 | 点击猫猫 | 得分音效 + 分数+1 |
 
-**截图:** [需要手动截取: 游戏进行中]
+**截图:** ![orange](test-screenshots/orange-game.png)
 
 ---
 
@@ -158,7 +160,7 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | 3 | 点击黑黑猫猫 | 弹出安慰话语 |
 | 4 | 等待15秒 | 旧话语渐隐消失，新话语出现 |
 
-**截图:** [需要手动截取: 星空+安慰语]
+**截图:** ![black](test-screenshots/black-guardian.png)
 
 ---
 
@@ -169,7 +171,7 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | 1 | 打开 mimi.html | 店长猫猫 + 监控面板 |
 | 2 | 查看数据 | 显示其他猫猫统计数据 |
 
-**截图:** [需要手动截取: 监控面板]
+**截图:** [主人未截此页 — 保留待补]
 
 ---
 
@@ -181,7 +183,7 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | 2 | 点击"加入购物车" | 购物车音效 + 数量+1 |
 | 3 | 点击"结算" | 成功音效 |
 
-**截图:** [需要手动截取: 购物车页面]
+**截图:** ![menu](test-screenshots/menu-cart.png)
 
 ---
 
@@ -192,7 +194,7 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | 1 | 打开 gallery.html | 4只猫猫写真 + 俳句 |
 | 2 | 查看每只猫 | 中日双语俳句显示 |
 
-**截图:** [需要手动截取: 绘卷全页]
+**截图:** ![gallery](test-screenshots/gallery-haiku.png)
 
 ---
 
@@ -203,8 +205,8 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | CLI 自动化 | 7 | 7 | 0 | 100% |
 | Config 数据校验 | 8 | 8 | 0 | 100% |
 | Stats 逻辑模拟 | 7 | 7 | 0 | 100% |
-| 网页手动测试 | 7 | 待截图 | 0 | — |
-| **总计** | **29** | **22** | **0** | **100%** |
+| 网页手动测试 | 7 | 6已截图 | 0 | 86% |
+| **总计** | **29** | **28** | **0** | **97%** |
 
 ---
 
@@ -213,7 +215,7 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 | # | 问题 | 严重度 | 状态 |
 |---|------|--------|------|
 | 1 | `export-config` 正则 count 偏小（菜单id干扰） | 低 | 待修 |
-| 2 | 网页截图需手动完成 | — | 待主人配合 |
+| 2 | mimi.html 截图待补 | 低 | 主人后续补充 |
 
 ---
 
