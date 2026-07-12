@@ -33,7 +33,7 @@ Don't use for:
 ## Architecture
 
 ```
-meow-cafe-skill/
+skill/                         ← Skill 文件
 ├── SKILL.md                   ← This file
 ├── references/
 │   └── config.js              ← 🎨 SINGLE SOURCE OF TRUTH: all cats, colors, menus
@@ -51,8 +51,7 @@ meow-cafe-skill/
 │   └── stats.js               ← 📊 localStorage: weekly-reset visit stats
 └── assets/
     ├── 咪咪.png, 奶油.png, 橘橘.png, 黑黑.png, cat4.png
-    ├── black_loop.mp3          ← BGM: rain sounds for black.html
-    └── black_bgm.m4a           ← BGM: alternative format
+    └── black_loop.mp3          ← BGM: 3min rain loop
 ```
 
 ## Key Design Principles
