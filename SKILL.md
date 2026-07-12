@@ -139,7 +139,7 @@ All files are static HTML/JS/CSS — deploy to GitHub Pages, Netlify, Vercel, or
 
 4. **p5.js CDN dependency**: All pages load p5.js from CDN. Offline use requires downloading p5.js locally and updating `<script>` tags.
 
-5. **File size warning**: `assets/black_bgm.m4a` is ~104MB — exceeds GitHub's 100MB limit. Use Git LFS or compress before pushing.
+5. **Audio format**: Prefer mp3 (smaller, universally supported) over m4a for web use.
 
 6. **Emoji rendering**: Cat emoji filters use CSS `hue-rotate()` — rendering varies by OS/browser. Test on target platforms.
 
