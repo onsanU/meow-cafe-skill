@@ -1,0 +1,102 @@
+{
+  "name": "generate.py CLI 测试用例",
+  "description": "验证 scripts/generate.py 的4个命令正常执行 + 边界处理",
+  "test_date": "2026-07-12",
+  "test_cases": [
+    {
+      "id": "CLI-001",
+      "command": "python3 scripts/generate.py list",
+      "description": "list 命令：列出所有猫猫+菜单",
+      "expected": {
+        "cat_count_min": 4,
+        "cats_include": ["奶油", "橘橘", "黑黑", "咪咪"],
+        "menu_count_min": 3,
+        "menu_include": ["猫爪拿铁", "喵喵奶茶", "小鱼干套餐"],
+        "exit_code": 0
+      }
+    },
+    {
+      "id": "CLI-002",
+      "command": "python3 scripts/generate.py export-config",
+      "description": "export-config 命令：导出配置摘要",
+      "expected": {
+        "cat_count_min": 4,
+        "menu_count_min": 3,
+        "config_size_min": 4000,
+        "exit_code": 0
+      }
+    },
+    {
+      "id": "CLI-003",
+      "command": "python3 scripts/generate.py add-cat",
+      "description": "add-cat 边界：全空输入应提示错误",
+      "input": {
+        "cat_id": "",
+        "name": "",
+        "emoji": "",
+        "desc": "",
+        "body_color": ""
+      },
+      "expected": {
+        "output_contains": "必填项不能为空",
+        "exit_code": 0
+      }
+    },
+    {
+      "id": "CLI-004",
+      "command": "python3 scripts/generate.py add-menu",
+      "description": "add-menu 边界：全空输入应提示错误",
+      "input": {
+        "menu_id": "",
+        "name": "",
+        "price": ""
+      },
+      "expected": {
+        "output_contains": "必填项不能为空",
+        "exit_code": 0
+      }
+    },
+    {
+      "id": "CLI-005",
+      "command": "python3 scripts/generate.py add-cat",
+      "description": "add-cat 正常：模拟输入新猫猫数据（不实际执行，验证插入逻辑）",
+      "input": {
+        "cat_id": "test_huahua",
+        "name": "花花",
+        "emoji": "🐱",
+        "desc": "测试用猫猫",
+        "body_color": "#FFFFFF",
+        "ear_color": "#EEEEEE",
+        "eye_color": "#000000"
+      },
+      "expected": {
+        "generated_config_contains": ["id: 'test_huahua'", "name: '花花'", "bodyColor: '#FFFFFF'"],
+        "generated_config_has": ["emoji", "monitorMoods", "galleryHaiku", "galleryJp"]
+      }
+    },
+    {
+      "id": "CLI-006",
+      "command": "python3 scripts/generate.py add-menu",
+      "description": "add-menu 正常：模拟输入新菜单项",
+      "input": {
+        "menu_id": "test_cake",
+        "name": "🍰 测试蛋糕",
+        "price": 99,
+        "desc": "测试用甜点"
+      },
+      "expected": {
+        "generated_config_contains": ["id:'test_cake'", "name:'🍰 测试蛋糕'", "price:99"],
+        "generated_config_has": ["tags", "sold", "cat"]
+      }
+    },
+    {
+      "id": "CLI-007",
+      "command": "python3 scripts/generate.py",
+      "description": "无参数：应显示帮助信息",
+      "expected": {
+        "output_contains": ["list", "add-cat", "add-menu", "export-config"],
+        "exit_code": 0
+      }
+    }
+  ]
+}

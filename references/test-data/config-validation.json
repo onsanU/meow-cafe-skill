@@ -1,0 +1,78 @@
+{
+  "name": "config.js 数据完整性校验",
+  "description": "验证 references/config.js 中所有猫猫、菜单、全局配置的数据结构和完整性",
+  "test_date": "2026-07-12",
+  "config_path": "references/config.js",
+  "test_cases": [
+    {
+      "id": "CFG-001",
+      "category": "猫猫基本属性",
+      "description": "4只猫都有完整的必需字段",
+      "required_fields": ["id", "name", "emoji", "desc", "bodyColor", "eyeColor", "noseColor", "pageBg"],
+      "cats": ["cream", "orange", "black", "mimi"],
+      "expected": "all_pass"
+    },
+    {
+      "id": "CFG-002",
+      "category": "猫猫颜色格式",
+      "description": "所有颜色字段是合法 hex 格式 (#XXXXXX 或 3位/6位)",
+      "fields": ["bodyColor", "earColor", "eyeColor", "noseColor", "pageBg"],
+      "pattern": "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$",
+      "expected": "all match pattern"
+    },
+    {
+      "id": "CFG-003",
+      "category": "emoji 完整性",
+      "description": "每只猫都有非空 emoji 字段",
+      "cats": ["cream", "orange", "black", "mimi"],
+      "check": "emoji is non-empty string",
+      "expected": "all non-empty"
+    },
+    {
+      "id": "CFG-004",
+      "category": "菜单数据",
+      "description": "菜单项 price 是数字, name/desc 非空",
+      "expected": {
+        "min_items": 3,
+        "price_is_number": true,
+        "name_non_empty": true,
+        "has_tags": true
+      }
+    },
+    {
+      "id": "CFG-005",
+      "category": "俳句完整性",
+      "description": "每只猫 + 咖啡馆都有中日双语俳句",
+      "fields": ["galleryHaiku", "galleryJp"],
+      "cats": ["cream", "orange", "black", "mimi"],
+      "cafe_field": "GALLERY_CAFE",
+      "expected": "all non-empty strings"
+    },
+    {
+      "id": "CFG-006",
+      "category": "咪咪特殊数据",
+      "description": "咪咪有 bossLines 且数量足够",
+      "expected": {
+        "bossLines_exists": true,
+        "bossLines_min": 10,
+        "bossLines_has_placeholders": ["{cream}", "{orange}", "{black}"]
+      }
+    },
+    {
+      "id": "CFG-007",
+      "category": "全局配色",
+      "description": "CAFE_COLORS 包含所有必需颜色变量",
+      "required": ["primary", "secondary", "bg", "text", "textLight", "cardBg", "footer", "heroGradient"],
+      "expected": "all present"
+    },
+    {
+      "id": "CFG-008",
+      "category": "Logo猫猫",
+      "description": "LOGO_CATS 有足够数量和必需字段",
+      "expected": {
+        "min_count": 4,
+        "required_fields": ["body", "ears", "nose", "name"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "name": "stats.js 状态模拟测试",
+  "description": "模拟 localStorage 统计模块在各种场景下的状态变化，验证 getStats() / recordStat() / 周重置逻辑",
+  "test_date": "2026-07-12",
+  "module": "templates/stats.js",
+  "storage_key": "meowcafe_stats_v1",
+  "test_cases": [
+    {
+      "id": "STAT-001",
+      "scenario": "新用户首次访问",
+      "description": "localStorage 为空时，getStats() 返回初始全0数据",
+      "setup": {
+        "localStorage": null
+      },
+      "expected": {
+        "cream_pets": 0,
+        "orange_best": 0,
+        "orange_total": 0,
+        "black_dreams": 0,
+        "mimi_reports": 0,
+        "menu_orders": 0,
+        "lastVisit": "today",
+        "weekStart": "this_monday"
+      }
+    },
+    {
+      "id": "STAT-002",
+      "scenario": "摸摸奶油1次",
+      "description": "recordStat('cream_pets') 后 cream_pets 从0变1",
+      "setup": {
+        "localStorage": "initStats()"
+      },
+      "action": "recordStat('cream_pets')",
+      "expected": {
+        "cream_pets": 1,
+        "other_fields_unchanged": true
+      }
+    },
+    {
+      "id": "STAT-003",
+      "scenario": "橘橘吃罐头（带value参数）",
+      "description": "recordStat('orange_total', 3) 累加3分",
+      "setup": {
+        "localStorage": "initStats()"
+      },
+      "action": "recordStat('orange_total', 3)",
+      "expected": {
+        "orange_total": 3,
+        "other_fields_unchanged": true
+      }
+    },
+    {
+      "id": "STAT-004",
+      "scenario": "连续多次操作累加正确",
+      "description": "连续3次 recordStat('cream_pets') 后 cream_pets=3",
+      "setup": {
+        "localStorage": "initStats()"
+      },
+      "actions": [
+        "recordStat('cream_pets')",
+        "recordStat('cream_pets')",
+        "recordStat('cream_pets')"
+      ],
+      "expected": {
+        "cream_pets": 3
+      }
+    },
+    {
+      "id": "STAT-005",
+      "scenario": "跨周自动重置",
+      "description": "weekStart 设为8天前，getStats() 应返回全0新对象",
+      "setup": {
+        "localStorage": {
+          "cream_pets": 99,
+          "orange_total": 500,
+          "black_dreams": 7,
+          "weekStart": "2026-07-01",
+          "lastVisit": "2026-07-10"
+        }
+      },
+      "action": "getStats()",
+      "expected": {
+        "cream_pets": 0,
+        "orange_total": 0,
+        "black_dreams": 0,
+        "weekStart": "current_monday",
+        "description": "所有计数归零，weekStart更新为本周一"
+      }
+    },
+    {
+      "id": "STAT-006",
+      "scenario": "边界：最大值不溢出",
+      "description": "连续100次 recordStat 后值正确累加，不崩溃",
+      "setup": {
+        "localStorage": "initStats()"
+      },
+      "actions": "recordStat('cream_pets') x100",
+      "expected": {
+        "cream_pets": 100,
+        "no_crash": true
+      }
+    },
+    {
+      "id": "STAT-007",
+      "scenario": "损坏数据容错",
+      "description": "localStorage 存储了损坏的 JSON 数据，getStats() 应返回初始值而非崩溃",
+      "setup": {
+        "localStorage": "{broken json!!!"
+      },
+      "action": "getStats()",
+      "expected": {
+        "returns": "initStats()",
+        "no_crash": true
+      }
+    }
+  ]
+}

@@ -14,7 +14,7 @@ import os
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(SCRIPT_DIR, 'config.js')
+CONFIG_PATH = os.path.join(SCRIPT_DIR, '..', 'references', 'config.js')
 
 def load_config():
     """从config.js中提取CATS_CONFIG和MENU_CONFIG"""
