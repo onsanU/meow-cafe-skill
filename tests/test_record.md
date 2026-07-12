@@ -123,7 +123,8 @@ print(f'颜色: {len(re.findall(r"#([0-9A-Fa-f]{6})", config))} 个 hex')
 
 **截图:** 
 - 问卷页: ![index-quiz](screenshots/index-quiz.png)
-- 咖啡馆: ![index-cafe](screenshots/index-cafe.png)
+- 咖啡馆主页: ![index-main](screenshots/index-main.png)
+- 撒小鱼干: ![index-cafe](screenshots/index-cafe.png)
 
 ---
 
