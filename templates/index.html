@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI猫猫陪伴助手 · Meow Cafe</title>
+<script src="config.js"></script>
+<script src="stats.js"></script>
+<script src="sound.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #4a3728; background: #fff8f0; line-height: 1.6;
+  }
+
+  /* ═══ Hero with Canvas Background ═══ */
+  #hero {
+    position: relative;
+    text-align: center;
+    height: 520px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffe0cc 0%, #ffd4e0 40%, #ffe8d6 100%);
+  }
+  #hero canvas {
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  #hero .hero-content {
+    position: relative;
+    z-index: 10;
+    padding-top: 100px;
+    pointer-events: none;
+  }
+  #hero .hero-content h1 {
+    font-size: 52px;
+    color: #d4687c;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 10px rgba(255,255,255,0.8);
+  }
+  #hero .hero-content p {
+    font-size: 20px;
+    color: #8b6f5e;
+    text-shadow: 0 1px 6px rgba(255,255,255,0.8);
+  }
+  #hero .hero-content .btn {
+    pointer-events: auto;
+    display: inline-block;
+    margin-top: 25px;
+    padding: 14px 40px;
+    background: #f4a460;
+    color: #fff;
+    border-radius: 50px;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 600;
+    transition: transform 0.2s, background 0.2s;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 3px 12px rgba(244,164,96,0.3);
+  }
+  #hero .hero-content .btn:hover {
+    transform: scale(1.05);
+    background: #e8913a;
+  }
+  #hero .hint {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    color: rgba(150,120,100,0.5);
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  /* ═══ Cat Cards ═══ */
+  .cats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    padding: 60px 20px 50px;
+    flex-wrap: wrap;
+    background: #fff;
+  }
+  .cats .section-title {
+    width: 100%;
+    text-align: center;
+    color: #d4687c;
+    font-size: 30px;
+    margin-bottom: 35px;
+  }
+  .cat-card {
+    background: #fff8f0;
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+    width: 220px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    transition: transform 0.2s, border-color 0.2s;
+    border: 2px solid transparent;
+  }
+  .cat-card:hover {
+    transform: translateY(-5px);
+    border-color: #f4a460;
+  }
+  .cat-avatar { font-size: 60px; margin-bottom: 10px; }
+  .cat-card h3 { color: #d4687c; margin-bottom: 5px; font-size: 18px; }
+  .cat-card p { color: #8b6f5e; font-size: 14px; }
+
+  /* ═══ Menu ═══ */
+  .menu {
+    padding: 60px 20px;
+    text-align: center;
+    background: #fff5ed;
+  }
+  .menu h2 { color: #d4687c; font-size: 32px; margin-bottom: 30px; }
+  .menu-grid {
+    display: flex; justify-content: center; gap: 25px;
+    flex-wrap: wrap; max-width: 900px; margin: 0 auto;
+  }
+  .menu-item {
+    background: #fff; border-radius: 15px; padding: 20px 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05); min-width: 180px;
+    transition: transform 0.2s;
+  }
+  .menu-item:hover { transform: translateY(-3px); }
+  .menu-item .price { color: #f4a460; font-weight: 700; font-size: 18px; margin-top: 5px; }
+
+  .footer {
+    text-align: center; padding: 30px; color: #b8a090;
+    font-size: 14px; background: #fff;
+  }
+  /* ── 添加猫猫弹窗 ── */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 100;
+    justify-content: center; align-items: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff; border-radius: 18px; padding: 24px; width: 360px; max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18); position: relative;
+  }
+  .modal h3 { font-size: 18px; color: #4a3728; margin-bottom: 16px; }
+  .modal label { display: block; font-size: 13px; color: #8b6f5e; margin: 10px 0 4px; }
+  .modal input { width: 100%; padding: 8px 12px; border: 1px solid #e0d5cc; border-radius: 8px; font-size: 14px; }
+  .modal .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+  .modal .btn-submit { flex:1; padding: 10px; background:#d4687c; color:#fff; border:none; border-radius: 10px; font-size:15px; cursor:pointer; }
+  .modal .btn-cancel { flex:1; padding: 10px; background:#f0e8e4; color:#8b6f5e; border:none; border-radius: 10px; font-size:15px; cursor:pointer; }
+  .modal .hint { margin-top: 12px; font-size: 11px; color: #b8a090; background:#fff8f5; padding:8px; border-radius:8px; display:none; }
+  /* ── 氛围切换按钮 ── */
+  #theme-btn {
+    position: fixed; top: 16px; left: 16px; z-index: 50;
+    background: rgba(255,255,255,0.8); border: 1px solid #e0d5cc;
+    border-radius: 20px; padding: 6px 12px; font-size: 16px;
+    cursor: pointer; transition: transform 0.2s;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  }
+  #theme-btn:hover { transform: scale(1.08); }
+  /* ── 固定统计栏 ── */
+  #stats-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+    text-align: center; padding: 10px 20px;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(6px);
+    border-top: 1px solid #f0e8e4; font-size: 13px; color: #8b6f5e;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  }
+  body { padding-bottom: 40px; }
+  /* ── 问卷覆盖层 ── */
+  #quiz-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(180deg, #fef8f2 0%, #fdf0f5 50%, #fef5f0 100%);
+    z-index: 999; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: opacity 0.6s, visibility 0.6s;
+  }
+  #quiz-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .quiz-card {
+    background: #fff; border-radius: 24px; padding: 40px 32px;
+    max-width: 500px; width: 90vw; text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    transition: transform 0.4s, opacity 0.4s;
+  }
+  .quiz-card.slide-out { transform: translateX(-60px); opacity: 0; }
+  .quiz-card.slide-in  { transform: translateX(0); opacity: 1; }
+  .quiz-q { font-size: 15px; color: #b89890; margin-bottom: 6px; letter-spacing: 2px; }
+  .quiz-title { font-size: 24px; color: #4a3728; margin-bottom: 28px; font-weight: 600; }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-opt {
+    padding: 14px 20px; border: 2px solid #f0e8e4; border-radius: 14px;
+    font-size: 16px; color: #5a3e3a; cursor: pointer; transition: all 0.25s;
+    background: #fefefe; text-align: left;
+  }
+  .quiz-opt:hover { border-color: #d4687c; background: #fff5f5; transform: translateX(4px); }
+  .quiz-opt:active { transform: scale(0.98); }
+  .quiz-opt .emoji { font-size: 22px; margin-right: 8px; }
+  .quiz-progress { display: flex; gap: 8px; margin-bottom: 28px; }
+  .quiz-dot { width: 10px; height: 10px; border-radius: 50%; background: #e0d5cc; transition: background 0.3s; }
+  .quiz-dot.done { background: #d4687c; }
+  .quiz-dot.current { background: #f4a460; transform: scale(1.3); }
+  /* ── 结果页 ── */
+  .result-cat { font-size: 80px; margin: 10px 0; animation: bounce 0.6s ease infinite alternate; }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+  .result-btn {
+    display: inline-block; margin-top: 20px; padding: 12px 36px;
+    background: #d4687c; color: #fff; border-radius: 25px;
+    text-decoration: none; font-size: 16px; font-weight: 600;
+    transition: transform 0.2s; cursor: pointer;
+  }
+  .result-btn:hover { transform: scale(1.05); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+  🐱 猫猫匹配问卷
+═══════════════════════════════════ -->
+<div id="quiz-overlay">
+  <div class="quiz-card" id="quiz-card"></div>
+</div>
+
+<script>
+const QUIZ = [
+  { q:'问题 1/4',title:'你希望猫猫的性格更偏向哪一种？',options:[
+    {label:'🐱 温柔粘人',scores:{cream:3}},{label:'🐈 活泼好动',scores:{orange:3}},{label:'🐈‍⬛ 傲娇高冷',scores:{black:3}},{label:'😺 憨憨治愈',scores:{mimi:3}}]},
+  { q:'问题 2/4',title:'你希望猫猫能帮你做些什么？',options:[
+    {label:'💬 聊天解闷',scores:{black:2,mimi:1}},{label:'💕 情绪安抚',scores:{cream:3}},{label:'⏰ 日常提醒',scores:{mimi:3}},{label:'📚 陪你学习/工作',scores:{orange:3}}]},
+  { q:'问题 3/4',title:'你喜欢什么样的互动风格？',options:[
+    {label:'🎀 可爱卖萌',scores:{cream:3}},{label:'😆 幽默吐槽',scores:{orange:3}},{label:'🌸 温柔鼓励',scores:{black:2,cream:1}},{label:'🧠 冷静理性',scores:{mimi:3}}]},
+  { q:'问题 4/4',title:'你希望猫猫用什么方式陪伴你？',options:[
+    {label:'💬 文字聊天',scores:{black:3}},{label:'🎤 语音互动',scores:{mimi:3}},{label:'😴 安静地待着',scores:{cream:3}}]},
+];
+const CAT_RESULT = {
+  cream:{name:'奶油',emoji:'🐈',color:'#F5D5E0',page:'cream.html',desc:'温柔粘人的奶油，会用软软的爪爪接住你所有疲惫~'},
+  orange:{name:'橘橘',emoji:'🐈',color:'#FF9A56',page:'orange.html',desc:'活泼好动的橘橘，用美食和游戏填满你的每一天！'},
+  black:{name:'黑黑',emoji:'🐈‍⬛',color:'#5A5060',page:'black.html',desc:'傲娇高冷的黑黑，嘴上不说但总在星空下偷偷守护你~'},
+  mimi:{name:'咪咪',emoji:'😺',color:'#FFF0E1',page:'mimi.html',desc:'憨憨治愈的咪咪店长，统领全局也为你留了最暖的角落~'},
+};
+let qStep=0, scores={cream:0,orange:0,black:0,mimi:0}, card=document.getElementById('quiz-card');
+function renderQuiz(){
+  if(qStep>=QUIZ.length){showResult();return;}
+  let q=QUIZ[qStep], dots='';
+  for(let i=0;i<QUIZ.length;i++) dots+='<div class="quiz-dot '+(i<qStep?'done':i===qStep?'current':'')+'"></div>';
+  card.innerHTML='<div class="quiz-progress">'+dots+'</div><div class="quiz-q">'+q.q+'</div><div class="quiz-title">'+q.title+'</div><div class="quiz-options">'+q.options.map((o,i)=>'<div class="quiz-opt" onclick="pick('+qStep+','+i+')"><span class="emoji">'+o.label.slice(0,2)+'</span>'+o.label.slice(2)+'</div>').join('')+'</div>';
+  card.classList.remove('slide-out');card.classList.add('slide-in');
+}
+function pick(qi,oi){let s=QUIZ[qi].options[oi].scores;for(let[c,p]of Object.entries(s))scores[c]=(scores[c]||0)+p;card.classList.add('slide-out');setTimeout(()=>{qStep++;renderQuiz();},350);}
+function showResult(){let best=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0][0],cat=CAT_RESULT[best];card.innerHTML='<div style="font-size:14px;color:#b89890;margin-bottom:4px;">✨ 你的专属猫猫是</div><div class="result-cat">'+cat.emoji+'</div><div style="font-size:28px;font-weight:700;color:#4a3728;">'+cat.name+'</div><div style="font-size:14px;color:#8b6f5e;margin:10px 0 20px;">'+cat.desc+'</div><a href="#" onclick="skipQuiz()" class="result-btn">☕ 进入咖啡馆找'+cat.name+'</a><div style="margin-top:14px;"><a href="javascript:void(0)" onclick="skipQuiz()" style="color:#c0b0a8;font-size:13px;text-decoration:none;">直接逛逛 →</a></div>';card.classList.remove('slide-out');card.classList.add('slide-in');}
+function skipQuiz(){document.getElementById('quiz-overlay').classList.add('hidden');sessionStorage.setItem('meow_quiz_done','1');}
+renderQuiz();
+// 检查是否已完成问卷
+if(sessionStorage.getItem('meow_quiz_done')==='1')skipQuiz();
+</script>
+
+<!-- 🌙 氛围切换按钮 -->
+<button id="theme-btn" onclick="cycleTheme()" title="切换咖啡馆氛围">🌅</button>
+
+<div id="hero">
+  <div class="hero-content">
+    <h1>🐱 Meow Cafe</h1>
+    <p>喝咖啡 · 撸猫猫 · 治愈你的每一天</p>
+    <p style="font-size:14px;margin-top:4px;opacity:0.7;">⬆ 猫猫们在背景里跑！移动鼠标逗逗它们~</p>
+    <button class="btn" onclick="sprinkleTreats()">🐟 撒小鱼干</button>
+  </div>
+  <div class="hint">🐱 晃动鼠标吸引猫猫  |  点按钮撒小鱼干 🐟</div>
+</div>
+
+<div class="cats">
+  <h2 class="section-title">🐱 驻店猫咪</h2>
+  <a href="cream.html" style="text-decoration:none;"><div class="cat-card"><div class="cat-avatar" style="filter:hue-rotate(300deg) saturate(0.5) brightness(1.15);">🐈</div><h3>奶油</h3><p>温柔亲人 · 最爱蹭蹭</p></div></a>
+  <a href="orange.html" style="text-decoration:none;"><div class="cat-card"><div class="cat-avatar">🐈</div><h3>橘橘</h3><p>吃货担当 · 为罐头疯狂</p></div></a>
+  <a href="black.html" style="text-decoration:none;"><div class="cat-card"><div class="cat-avatar">🐈‍⬛</div><h3>黑黑</h3><p>高冷神秘 · 深夜守护者</p></div></a>
+  <a href="mimi.html" style="text-decoration:none;"><div class="cat-card"><div class="cat-avatar">😺</div><h3>咪咪</h3><p>店长本喵 · 统领全局</p></div></a>
+  <div class="cat-card" id="add-cat-btn" onclick="openAddCat()" style="cursor:pointer;border:2px dashed #d4c0b8;background:#fefefe;">
+    <div class="cat-avatar" style="font-size:50px;opacity:0.5;">➕</div><h3 style="color:#c0a8a0;">添加猫猫</h3><p style="color:#c0a8a0;">招募新店员</p>
+  </div>
+</div>
+
+<a href="gallery.html" style="text-decoration:none;">
+<div style="text-align:center;padding:16px 20px;margin:0 20px 20px;background:linear-gradient(135deg,#fdf6f0,#fdf0f5);border-radius:14px;border:1px solid #e8ddd6;transition:transform 0.3s,box-shadow 0.3s;"
+     onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 16px rgba(120,80,60,0.1)'"
+     onmouseout="this.style.transform='';this.style.boxShadow=''">
+  <span style="font-size:28px;">🌸</span>
+  <span style="font-size:18px;color:#8b5e5e;margin:0 8px;letter-spacing:2px;">喵の绘卷</span>
+  <span style="font-size:13px;color:#b89890;">— 猫猫と喫茶の物語 —</span>
+  <span style="font-size:16px;margin-left:6px;">🖼️</span>
+</div>
+</a>
+
+<div class="menu">
+  <h2>☕ 人气菜单</h2>
+  <div class="menu-grid">
+    <a href="menu.html" style="text-decoration:none;color:inherit;"><div class="menu-item"><h3>猫爪拿铁</h3><p>可爱拉花 · 治愈满分</p><p class="price">¥32</p></div></a>
+    <a href="menu.html" style="text-decoration:none;color:inherit;"><div class="menu-item"><h3>喵喵奶茶</h3><p>甜蜜暖饮 · 猫咪杯套</p><p class="price">¥28</p></div></a>
+    <a href="menu.html" style="text-decoration:none;color:inherit;"><div class="menu-item"><h3>小鱼干套餐</h3><p>猫咪零食+你的甜点</p><p class="price">¥58</p></div></a>
+  </div>
+</div>
+
+<div class="footer" id="footer">
+  📍 猫猫市猫猫区猫猫路888号 | 🕐 每天 10:00 - 22:00 | 💕 咪咪与主人们等你来
+</div>
+
+<!-- 📊 陪伴统计 -->
+<div id="stats-bar">📊 本周陪伴数据加载中……</div>
+<script>
+(function() {
+  let s = getStats();
+  let items = [
+    { label:'奶油摸摸', val:s.cream_pets, unit:'次' },
+    { label:'橘橘得分', val:s.orange_total, unit:'罐' },
+    { label:'黑黑梦境', val:s.black_dreams, unit:'层' },
+    { label:'咪咪汇报', val:s.mimi_reports, unit:'次' },
+  ];
+  let best = items.reduce((a,b)=>a.val>b.val?a:b, items[0]);
+  let parts = items.map(i=>'<span style="margin:0 10px;">'+i.label+': <b>'+i.val+'</b> '+i.unit+'</span>');
+  let bar = document.getElementById('stats-bar');
+  bar.innerHTML = '📊 本周：' + parts.join('│') + ' │ 🏆 <b>'+best.label+'</b> 最活跃！';
+})();
+</script>
+
+<script>
+// ══════════════════════════════════════════
+//  🐱 Meow Cafe Dynamic Cats (p5.js)
+// ══════════════════════════════════════════
+
+const CAT_COLORS = LOGO_CATS;
+
+let catInstances = [];
+let pawPrints = [];
+let fishTreats = [];
+let sparkles = [];
+let yarnBalls = [];
+let mouseTrail = [];
+let canvasW = 0, canvasH = 0;
+
+function sprinkleTreats() {
+  for (let i = 0; i < 8; i++) {
+    fishTreats.push({
+      x: canvasW * 0.2 + Math.random() * canvasW * 0.6,
+      y: 280 + Math.random() * 150,
+      vx: (Math.random()-0.5)*3, vy: -4-Math.random()*5,
+      gravity: 0.15, alpha: 100,
+      rotation: Math.random()*Math.PI*2,
+      rotSpeed: (Math.random()-0.5)*0.2,
+    });
+  }
+  // 🐱 猫猫们转圈+向撒食点靠近！
+  let targetX = canvasW * 0.5 + (Math.random() - 0.5) * canvasW * 0.4;
+  let targetY = 320 + Math.random() * 80;
+  for (let cat of catInstances) {
+    cat.spinS = (Math.random() - 0.5) * 0.4;
+    cat.attractX = targetX + (Math.random() - 0.5) * 200;
+    cat.attractY = targetY + (Math.random() - 0.5) * 120;
+    cat.attractStr = 0.03 + Math.random() * 0.04;
+  }
+}
+
+// ═══ P5 instance ═══
+new p5(function(p) {
+
+  p.setup = function() {
+    let hero = document.getElementById('hero');
+    canvasW = hero.offsetWidth;
+    canvasH = hero.offsetHeight;
+    let c = p.createCanvas(canvasW, canvasH);
+    c.parent('hero');
+    c.style('pointer-events', 'none');
+    p.pixelDensity(1);
+
+    for (let i = 0; i < 8; i++) makeCat(true);
+    for (let i = 0; i < 5; i++) makeYarn();
+  };
+
+  p.draw = function() {
+    p.clear();
+
+    // Mouse
+    let mx = p.mouseX, my = p.mouseY;
+    let onCanvas = mx >= 0 && mx <= canvasW && my >= 0 && my <= canvasH;
+
+    // Mouse trail (soft glow)
+    if (onCanvas && mx > 0 && my > 0) {
+      mouseTrail.push({ x: mx, y: my, life: 30 });
+    }
+    for (let i = mouseTrail.length-1; i >= 0; i--) {
+      mouseTrail[i].life--;
+      if (mouseTrail[i].life <= 0) { mouseTrail.splice(i,1); continue; }
+      let t = mouseTrail[i];
+      let a = p.map(t.life, 0, 30, 0, 30);
+      p.noStroke();
+      p.fill(255, 180, 100, a);
+      p.circle(t.x, t.y, p.map(t.life, 0, 30, 8, 30));
+    }
+
+    // Yarn balls
+    for (let yb of yarnBalls) {
+      yb.x += yb.vx; yb.y += yb.vy;
+      if (yb.x < 10 || yb.x > canvasW-10) yb.vx *= -1;
+      if (yb.y < 10 || yb.y > canvasH-10) yb.vy *= -1;
+      for (let cat of catInstances) {
+        let dx = yb.x-cat.x, dy = yb.y-cat.y;
+        let d = Math.sqrt(dx*dx+dy*dy);
+        if (d < cat.size*1.5 && d > 0) { yb.vx += (dx/d)*0.3; yb.vy += (dy/d)*0.3; }
+      }
+      p.push(); p.translate(yb.x, yb.y); p.rotate(yb.rot); yb.rot += yb.rs;
+      p.stroke(yb.col); p.strokeWeight(1.5); p.noFill();
+      for (let i=0;i<3;i++) p.arc(0,0,yb.sz,yb.sz, i*2.2, i*2.2+Math.PI);
+      p.pop();
+    }
+
+    // Paw prints
+    for (let i=pawPrints.length-1; i>=0; i--) {
+      let pp = pawPrints[i];
+      pp.alpha -= 0.5;
+      if (pp.alpha <= 0) { pawPrints.splice(i,1); continue; }
+      p.fill(200, 160, 140, pp.alpha*0.8); p.noStroke();
+      let s = pp.sz;
+      p.ellipse(pp.x, pp.y, s*1.2, s);
+      p.ellipse(pp.x-s*0.6, pp.y-s*0.5, s*0.5, s*0.5);
+      p.ellipse(pp.x+s*0.6, pp.y-s*0.5, s*0.5, s*0.5);
+      p.ellipse(pp.x-s*0.25, pp.y-s*0.8, s*0.4, s*0.4);
+      p.ellipse(pp.x+s*0.25, pp.y-s*0.8, s*0.4, s*0.4);
+    }
+
+    // Cats
+    for (let cat of catInstances) {
+      // Physics
+      let dx = mx-cat.x, dy = my-cat.y;
+      let dm = Math.sqrt(dx*dx+dy*dy);
+      if (onCanvas && dm < 200) {
+        let f = (200-dm)/200*0.3;
+        cat.vx += (dx/dm)*f; cat.vy += (dy/dm)*f;
+        cat.happy = Math.min(100, cat.happy+2);
+      } else { cat.happy = Math.max(0, cat.happy-1); }
+      cat.vx += (Math.random()-0.5)*0.1; cat.vy += (Math.random()-0.5)*0.1;
+      cat.vx *= 0.98; cat.vy *= 0.98;
+      let sp = Math.sqrt(cat.vx*cat.vx+cat.vy*cat.vy);
+      if (sp > 4) { cat.vx = cat.vx/sp*4; cat.vy = cat.vy/sp*4; }
+      cat.x += cat.vx; cat.y += cat.vy;
+      if (cat.x < cat.size) { cat.x=cat.size; cat.vx*=-0.8; }
+      if (cat.x > canvasW-cat.size) { cat.x=canvasW-cat.size; cat.vx*=-0.8; }
+      if (cat.y < cat.size) { cat.y=cat.size; cat.vy*=-0.8; }
+      if (cat.y > canvasH-cat.size) { cat.y=canvasH-cat.size; cat.vy*=-0.8; }
+
+      // Collision
+      for (let o of catInstances) {
+        if (o===cat) continue;
+        let cdx=cat.x-o.x, cdy=cat.y-o.y;
+        let cd=Math.sqrt(cdx*cdx+cdy*cdy);
+        let md=(cat.size+o.size)*0.8;
+        if (cd<md && cd>0) { let pu=(md-cd)*0.05; cat.vx+=(cdx/cd)*pu; cat.vy+=(cdy/cd)*pu; }
+      }
+
+      // 🐟 向撒食点靠近
+      if (cat.attractStr > 0.001) {
+        let adx = cat.attractX - cat.x;
+        let ady = cat.attractY - cat.y;
+        cat.vx += adx * cat.attractStr * 0.1;
+        cat.vy += ady * cat.attractStr * 0.1;
+        cat.attractStr *= 0.995;
+      }
+
+      cat.earP += cat.earV;
+      cat.tailA += cat.tailV;
+      cat.spinA += cat.spinS;
+
+      cat.blink--;
+      if (cat.blink<=0) { cat.blinking=true; cat.blink=100+p.floor(p.random(200)); }
+      if (cat.blinking && cat.blink<95) cat.blinking=false;
+
+      cat.pawT++;
+      if (cat.pawT>25 && sp>1) {
+        pawPrints.push({ x:cat.x, y:cat.y, sz:cat.size*0.3, alpha:40 });
+        cat.pawT=0;
+      }
+
+      // Happy sparkles
+      if (cat.happy>60 && p.frameCount%15===0) {
+        sparkles.push({ x:cat.x+(p.random()-0.5)*20, y:cat.y-cat.size,
+          vy:-1-p.random()*2, vx:(p.random()-0.5)*1, size:4+p.random()*6,
+          alpha:80, col:cat.color.nose, type: p.random()<0.5?'heart':'star' });
+      }
+
+      // === Draw Cat ===
+      p.push();
+      p.translate(cat.x, cat.y);
+      if (cat.happy>50) p.rotate(cat.spinA*(cat.happy/100));
+      let s = cat.size, c = cat.color;
+
+      // Tail
+      p.stroke(c.body); p.strokeWeight(s*0.12); p.noFill();
+      let sw = Math.sin(cat.tailA)*s*0.4;
+      p.beginShape();
+      p.curveVertex(-s*0.5, s*0.3); p.curveVertex(-s*0.5, s*0.3);
+      p.curveVertex(-s*0.5+sw*0.5, s*0.9);
+      p.curveVertex(-s*0.5+sw, s*1.3);
+      p.curveVertex(-s*0.5+sw, s*1.3);
+      p.endShape();
+
+      // Body
+      p.fill(c.body); p.noStroke();
+      p.ellipse(0, s*0.1, s*1.2, s*1.0);
+      p.ellipse(-s*0.35, s*0.5, s*0.3, s*0.2);
+      p.ellipse(s*0.35, s*0.5, s*0.3, s*0.2);
+
+      // Head
+      p.fill(c.body);
+      p.ellipse(0, -s*0.5, s*1.0, s*0.9);
+
+      // Ears
+      let wg = Math.sin(cat.earP)*s*0.08;
+      p.fill(c.ears);
+      p.triangle(-s*0.3, -s*0.8-wg, -s*0.55, -s*0.85, -s*0.25, -s*1.2+wg);
+      p.fill('#FFB3C1');
+      p.triangle(-s*0.32, -s*0.82-wg, -s*0.45, -s*0.86, -s*0.3, -s*1.08+wg);
+      p.fill(c.ears);
+      p.triangle(s*0.3, -s*0.8+wg, s*0.55, -s*0.85, s*0.25, -s*1.2-wg);
+      p.fill('#FFB3C1');
+      p.triangle(s*0.32, -s*0.82+wg, s*0.45, -s*0.86, s*0.3, -s*1.08-wg);
+
+      // Eyes
+      if (cat.blinking) {
+        p.stroke(c.body==='#FEFEFE' ? '#999':'#666'); p.strokeWeight(1.5);
+        p.line(-s*0.22, -s*0.52, -s*0.08, -s*0.52);
+        p.line(s*0.08, -s*0.52, s*0.22, -s*0.52);
+      } else {
+        let ec = c.name==='黑黑' ? '#FFD700' : '#3D6B3D';
+        p.fill(255); p.noStroke();
+        p.ellipse(-s*0.15, -s*0.52, s*0.18, s*0.2);
+        p.ellipse(s*0.15, -s*0.52, s*0.18, s*0.2);
+        p.fill(ec);
+        p.ellipse(-s*0.15, -s*0.52, s*0.12, s*0.14);
+        p.ellipse(s*0.15, -s*0.52, s*0.12, s*0.14);
+        p.fill(0);
+        p.ellipse(-s*0.15, -s*0.52, s*0.07, s*0.09);
+        p.ellipse(s*0.15, -s*0.52, s*0.07, s*0.09);
+        p.fill(255);
+        p.ellipse(-s*0.17, -s*0.55, s*0.04, s*0.04);
+        p.ellipse(s*0.13, -s*0.55, s*0.04, s*0.04);
+      }
+
+      // Nose
+      p.fill(c.nose); p.noStroke();
+      p.triangle(0, -s*0.4, -s*0.05, -s*0.36, s*0.05, -s*0.36);
+
+      // Mouth
+      p.stroke(c.body==='#FEFEFE'?'#BBB':'#888'); p.strokeWeight(0.8); p.noFill();
+      p.arc(-s*0.06, -s*0.35, s*0.1, s*0.1, 0, Math.PI*0.6);
+      p.arc(s*0.06, -s*0.35, s*0.1, s*0.1, Math.PI*0.4, Math.PI);
+
+      // Whiskers
+      let wl=s*0.4;
+      p.stroke(c.body==='#FEFEFE'?'#CCC':'#999'); p.strokeWeight(0.6);
+      p.line(-s*0.25,-s*0.42, -s*0.25-wl,-s*0.48);
+      p.line(-s*0.25,-s*0.38, -s*0.25-wl,-s*0.38);
+      p.line(-s*0.25,-s*0.34, -s*0.25-wl,-s*0.28);
+      p.line(s*0.25,-s*0.42, s*0.25+wl,-s*0.48);
+      p.line(s*0.25,-s*0.38, s*0.25+wl,-s*0.38);
+      p.line(s*0.25,-s*0.34, s*0.25+wl,-s*0.28);
+
+      p.pop();
+    }
+
+    // Sparkles (on top)
+    for (let i=sparkles.length-1; i>=0; i--) {
+      let sp=sparkles[i];
+      sp.x+=sp.vx; sp.y+=sp.vy; sp.vy-=0.01; sp.alpha-=1.5;
+      if (sp.alpha<=0) { sparkles.splice(i,1); continue; }
+      p.push(); p.translate(sp.x, sp.y);
+      if (sp.type==='heart') {
+        p.fill(p.red(sp.col), p.green(sp.col), p.blue(sp.col), sp.alpha); p.noStroke();
+        p.beginShape();
+        p.vertex(0,sp.size*0.3);
+        p.bezierVertex(-sp.size*0.5,-sp.size*0.3, -sp.size,sp.size*0.2, 0,sp.size);
+        p.bezierVertex(sp.size,sp.size*0.2, sp.size*0.5,-sp.size*0.3, 0,sp.size*0.3);
+        p.endShape();
+      } else {
+        p.fill(255,220,50,sp.alpha); p.noStroke();
+        let ang=Math.PI/5;
+        p.beginShape();
+        for(let j=0;j<10;j++) {
+          let r=j%2===0?sp.size*0.5:sp.size;
+          let a=j*ang-p.HALF_PI;
+          p.vertex(p.cos(a)*r, p.sin(a)*r);
+        }
+        p.endShape(p.CLOSE);
+      }
+      p.pop();
+    }
+
+    // Fish treats
+    for (let i=fishTreats.length-1; i>=0; i--) {
+      let ft=fishTreats[i];
+      ft.x+=ft.vx; ft.y+=ft.vy; ft.vy+=ft.gravity; ft.rotation+=ft.rotSpeed; ft.alpha-=0.8;
+      if (ft.alpha<=0||ft.y>canvasH+60) { fishTreats.splice(i,1); continue; }
+      p.push(); p.translate(ft.x, ft.y); p.rotate(ft.rotation);
+      p.fill('#FF8C69'); p.noStroke();
+      p.ellipse(0,0,14,7);
+      p.triangle(-7,0,-12,-5,-12,5);
+      p.fill(0); p.ellipse(4,-1.5,2,2);
+      p.pop();
+    }
+  };
+
+  p.windowResized = function() {
+    let hero = document.getElementById('hero');
+    canvasW = hero.offsetWidth;
+    canvasH = hero.offsetHeight;
+    p.resizeCanvas(canvasW, canvasH);
+  };
+
+  // ═══ Helpers ═══
+  function makeCat(init) {
+    catInstances.push({
+      x: init ? Math.random()*canvasW : p.random(canvasW*0.2, canvasW*0.8),
+      y: init ? Math.random()*canvasH : p.random(canvasH*0.2, canvasH*0.8),
+      vx: 0, vy: 0, size: 25+Math.random()*20,
+      color: CAT_COLORS[Math.floor(Math.random()*CAT_COLORS.length)],
+      earP: 0, earV: 0.02+Math.random()*0.03,
+      blink: Math.floor(Math.random()*120), blinking: false,
+      tailA: Math.random()*Math.PI*2, tailV: 0.03+Math.random()*0.05,
+      pawT: 0, happy: 0,
+      spinA: Math.random()*Math.PI*2, spinS: (Math.random()-0.5)*0.02,
+    });
+  }
+
+  function makeYarn() {
+    yarnBalls.push({
+      x: Math.random()*canvasW, y: Math.random()*canvasH,
+      vx: (Math.random()-0.5)*1.5, vy: (Math.random()-0.5)*1.5,
+      sz: 8+Math.random()*10, rot: Math.random()*Math.PI*2, rs: (Math.random()-0.5)*0.05,
+      col: ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#FF8C69','#C9B1FF','#FF9A56'][Math.floor(Math.random()*7)],
+    });
+  }
+});
+
+// ═══ 添加猫猫弹窗 ═══
+function openAddCat() {
+  document.getElementById('add-cat-modal').classList.add('show');
+}
+function closeAddCat() {
+  document.getElementById('add-cat-modal').classList.remove('show');
+  document.getElementById('modal-hint').style.display = 'none';
+}
+function submitAddCat() {
+  let id = document.getElementById('new-id').value.trim();
+  let name = document.getElementById('new-name').value.trim();
+  let emoji = document.getElementById('new-emoji').value.trim() || '🐈';
+  let desc = document.getElementById('new-desc').value.trim() || '新来的猫猫~';
+  let body = document.getElementById('new-body').value.trim();
+  let ear = document.getElementById('new-ear').value.trim() || body;
+  let eye = document.getElementById('new-eye').value.trim() || '#4A7C59';
+  if (!id || !name || !body) return alert('请至少填写ID、名字和身体颜色~');
+
+  // 动态添加猫猫卡片
+  let catsDiv = document.querySelector('.cats');
+  let btn = document.getElementById('add-cat-btn');
+  let card = document.createElement('div');
+  card.style.position = 'relative'; card.style.display = 'inline-block';
+  card.innerHTML = '<div class="cat-card" style="position:relative;"><div class="cat-avatar">'+emoji+'</div><h3>'+name+'</h3><p>'+desc+'</p><span onclick="this.parentElement.parentElement.remove()" style="position:absolute;top:6px;right:10px;cursor:pointer;font-size:16px;color:#c0a8a0;line-height:1;" title="移除">×</span></div>';
+  card.querySelector('.cat-card').style.background = body+'22';
+  catsDiv.insertBefore(card, btn);
+
+  // 显示config.js配置代码
+  let code = `  ${id}: {\n    id: '${id}',\n    name: '${name}',\n    emoji: '${emoji}',\n    emojiFilter: '',\n    desc: '${desc}',\n    bodyColor: '${body}',\n    earColor: '${ear}',\n    innerEarColor: '#FFB3C1',\n    eyeColor: '${eye}',\n    noseColor: '#FFB6C1',\n    monitorMoods: ['😊','😌'],\n    monitorStatuses: ['悠闲中……'],\n    galleryHaiku: '新来的猫<br>好奇张望<br>咖啡香气中',\n    galleryJp: 'あたらしい<br>ねこがきたよ<br>コーヒーかぐ',\n  },`;
+  let hint = document.getElementById('modal-hint');
+  hint.innerHTML = '✅ 卡片已添加！<br><br>📋 复制以下代码到 config.js 的 CATS_CONFIG 中永久保存：<br><br><code style="font-size:10px;word-break:break-all;">'+code.replace(/</g,'&lt;')+'</code><br><br>💡 或用命令：<code>python3 generate.py add-cat</code>';
+  hint.style.display = 'block';
+}
+
+// ═══ 🌙 定时氛围系统（支持手动切换） ═══
+const THEMES = [
+  { name:'morning', bg:'#fff8ed', hero:'linear-gradient(135deg, #fff3d6 0%, #ffe8c8 40%, #fff0dd 100%)', accent:'#f0a050', emoji:'🌅', label:'晨光' },
+  { name:'day',     bg:'#fff8f0', hero:'linear-gradient(135deg, #ffe0cc 0%, #ffd4e0 40%, #ffe8d6 100%)', accent:'#d4687c', emoji:'☀️', label:'午后' },
+  { name:'dusk',    bg:'#fef5f0', hero:'linear-gradient(135deg, #ffd0b0 0%, #f0c0c0 40%, #ffe0d0 100%)', accent:'#e88060', emoji:'🌇', label:'黄昏' },
+  { name:'night',   bg:'#f5f0f8', hero:'linear-gradient(135deg, #d8d0e8 0%, #c8c0e0 40%, #e0d8f0 100%)', accent:'#8870b0', emoji:'🌙', label:'深夜' },
+];
+let currentThemeIdx = (function() {
+  let h = new Date().getHours();
+  if (h >= 6 && h < 10) return 0;
+  if (h >= 10 && h < 17) return 1;
+  if (h >= 17 && h < 20) return 2;
+  return 3;
+})();
+
+function applyTheme(idx) {
+  currentThemeIdx = idx;
+  let t = THEMES[idx];
+  document.body.style.background = t.bg;
+  let hero = document.getElementById('hero');
+  if (hero) hero.style.background = t.hero;
+  let btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = t.emoji + ' ' + t.label;
+  let footer = document.getElementById('footer');
+  if (footer) {
+    let addr = footer.textContent.replace(/^[🌅☀️🌇🌙]\s*\S+\s*\|\s*/, '');
+    footer.textContent = t.emoji + ' ' + t.label + '咖啡馆 | ' + addr;
+  }
+}
+
+function cycleTheme() {
+  applyTheme((currentThemeIdx + 1) % THEMES.length);
+}
+
+// 初始应用
+applyTheme(currentThemeIdx);
+</script>
+
+<!-- 弹窗 -->
+<div class="modal-overlay" id="add-cat-modal">
+  <div class="modal">
+    <h3>🐱 招募新猫猫店员</h3>
+    <label>ID（英文）</label><input id="new-id" placeholder="如 huahua">
+    <label>名字</label><input id="new-name" placeholder="如 花花">
+    <label>Emoji</label><input id="new-emoji" placeholder="🐈" value="🐈">
+    <label>描述</label><input id="new-desc" placeholder="如 花园里的小公主">
+    <label>身体颜色</label><input id="new-body" placeholder="#F5D5E0" type="color" style="height:40px;padding:2px;">
+    <label>耳朵颜色</label><input id="new-ear" placeholder="同身体颜色">
+    <label>眼睛颜色</label><input id="new-eye" placeholder="#4A7C59">
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeAddCat()">取消</button>
+      <button class="btn-submit" onclick="submitAddCat()">🐱 招募！</button>
+    </div>
+    <div class="hint" id="modal-hint"></div>
+  </div>
+</div>
+
+</body>
+</html>

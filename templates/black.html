@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>黑黑 · 深夜守护</title>
+<script src="config.js"></script>
+<script src="stats.js"></script>
+<script src="sound.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    width:100%; height:100%; overflow:hidden;
+    background:#0d0b12; color:#9a8eb0;
+    font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+    transition: background 0.6s;
+  }
+  #app {
+    width:100%; height:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:20px;
+    padding:20px; position:relative;
+  }
+  #back-link {
+    position:fixed; top:16px; left:20px; z-index:20;
+    color:rgba(180,170,200,0.5); text-decoration:none; font-size:13px;
+  }
+  #back-link:hover { color:rgba(220,210,240,0.9); }
+
+  /* 守护状态 */
+  #guardian-status {
+    font-size:14px; letter-spacing:3px; opacity:0.7;
+    display:flex; align-items:center; gap:8px;
+  }
+  #guardian-status .moon { font-size:22px; animation:glow 3s ease infinite; }
+  @keyframes glow { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+
+  /* 白噪音选择器 */
+  #sound-selector {
+    display:flex; gap:12px; flex-wrap:wrap; justify-content:center;
+  }
+  .sound-btn {
+    padding:10px 20px; border-radius:20px; border:1px solid #2a2535;
+    background:rgba(25,20,35,0.8); color:#8a7ea0; font-size:14px;
+    cursor:pointer; transition:all 0.3s; letter-spacing:1px;
+  }
+  .sound-btn:hover { border-color:#5a4e70; color:#b8aed0; }
+  .sound-btn.active { background:rgba(80,60,100,0.5); border-color:#7a6e90; color:#d0c8e8; }
+
+  /* 呼吸引导区 */
+  #breath-area {
+    display:none; flex-direction:column; align-items:center; gap:20px;
+  }
+  #breath-circle {
+    width:160px; height:160px; border-radius:50%;
+    border:2px solid #3a3048; position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #breath-inner {
+    width:40px; height:40px; border-radius:50%;
+    background:rgba(180,160,220,0.3);
+    transition:all 0.1s linear;
+  }
+  #breath-text {
+    font-size:20px; letter-spacing:4px; color:#b8aed0;
+    min-height:28px; text-align:center;
+  }
+  #breath-phase {
+    font-size:13px; color:#6a5e80; letter-spacing:2px;
+  }
+
+  /* 输入区 */
+  #input-area {
+    display:flex; gap:8px; width:100%; max-width:400px;
+  }
+  #msg-input {
+    flex:1; padding:10px 16px; border-radius:22px;
+    border:1px solid #2a2535; background:rgba(20,15,30,0.6);
+    color:#b8aed0; font-size:14px; outline:none;
+  }
+  #msg-input:focus { border-color:#5a4e70; }
+  #msg-input::placeholder { color:#4a3e58; }
+  #send-btn {
+    padding:10px 18px; border-radius:22px; border:none;
+    background:rgba(60,45,80,0.6); color:#b8aed0;
+    font-size:13px; cursor:pointer; letter-spacing:2px;
+    transition:background 0.3s;
+  }
+  #send-btn:hover { background:rgba(80,60,100,0.7); }
+
+  /* 黑黑回复 */
+  #reply-area {
+    max-width:400px; width:100%; min-height:60px;
+    display:flex; flex-direction:column; gap:8px;
+    align-items:center;
+  }
+  .reply-msg {
+    font-size:14px; color:#7a6e90; letter-spacing:2px;
+    text-align:center; line-height:1.8;
+    animation:msgIn 0.6s ease, msgFade 8s ease 6s forwards;
+    padding:4px 0;
+  }
+  @keyframes msgIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+  @keyframes msgFade { from{opacity:1;} to{opacity:0;height:0;padding:0;margin:0;} }
+
+  /* 音量 */
+  #volume-slider {
+    width:120px; accent-color:#7a6e90;
+  }
+
+  @media (max-width:500px) {
+    .sound-btn { padding:8px 14px; font-size:12px; }
+    #breath-circle { width:120px; height:120px; }
+  }
+</style>
+</head>
+<body>
+<a id="back-link" href="index.html">← 回咖啡馆</a>
+
+<div id="app">
+  <!-- 守护状态 -->
+  <div id="guardian-status">
+    <span class="moon">🌙</span>
+    <span id="status-text">守护中</span>
+  </div>
+
+  <!-- 白噪音 -->
+  <div id="sound-selector">
+    <button class="sound-btn active" onclick="setSound('rain')">🌧️ 雨声</button>
+    <button class="sound-btn" onclick="setSound('off')">🔇 静音</button>
+  </div>
+  <input type="range" id="volume-slider" min="0" max="100" value="30" oninput="setVolume(this.value)">
+
+  <!-- 呼吸引导 -->
+  <div id="breath-area">
+    <div id="breath-circle"><div id="breath-inner"></div></div>
+    <div id="breath-phase"></div>
+    <div id="breath-text"></div>
+  </div>
+
+  <!-- 输入 -->
+  <div id="input-area" style="display:none"></div>
+
+  <!-- 自动安慰语 -->
+  <div id="reply-area"></div>
+</div>
+
+<script>
+// ═══ 白噪音引擎 ═══
+let audioCtx=null, noiseNode=null, noiseGain=null, currentSound='bgm';
+let bgmAudio = new Audio('black_loop.mp3');
+bgmAudio.loop = true;
+bgmAudio.volume = 0.3;
+
+function initAudio(){
+  if(audioCtx)return;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  noiseGain=audioCtx.createGain();
+  noiseGain.gain.value=0.3;
+  noiseGain.connect(audioCtx.destination);
+}
+
+function setVolume(v){
+  let vol = v/100;
+  if(noiseGain) noiseGain.gain.value = vol*0.6;
+  bgmAudio.volume = vol*0.6;
+}
+
+function setSound(type){
+  currentSound=type;
+  document.querySelectorAll('.sound-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sound-btn').forEach(b=>{
+    let t=b.textContent.trim();
+    if((type==='rain'&&t.includes('雨'))||(type==='off'&&t.includes('静')))b.classList.add('active');
+  });
+  if(noiseNode){try{noiseNode.stop();}catch(e){}noiseNode=null;}
+  bgmAudio.pause();
+  if(type==='off')return;
+  // 雨声 = B站音频循环
+  bgmAudio.play().catch(()=>{});
+}
+
+// ═══ 呼吸引导 ═══
+let breathTimer=null, breathRunning=false;
+function startBreathing(){
+  if(breathRunning)return;
+  breathRunning=true;
+  document.getElementById('breath-area').style.display='flex';
+  let phases=[
+    {text:'吸气',dur:4,target:120},
+    {text:'屏住',dur:7,target:120},
+    {text:'呼气',dur:8,target:40},
+  ];
+  let idx=0;
+  function step(){
+    if(!breathRunning)return;
+    let p=phases[idx];
+    document.getElementById('breath-phase').textContent=p.text;
+    document.getElementById('breath-text').textContent=p.dur+'秒';
+    document.getElementById('breath-inner').style.width=p.target+'px';
+    document.getElementById('breath-inner').style.height=p.target+'px';
+    idx=(idx+1)%3;
+    breathTimer=setTimeout(step,p.dur*1000);
+  }
+  step();
+}
+function stopBreathing(){
+  breathRunning=false;
+  clearTimeout(breathTimer);
+  document.getElementById('breath-area').style.display='none';
+}
+
+// ═══ 自动安慰话语轮播 ═══
+const COMFORT_MSGS = [
+  "晚安，主人。今天也辛苦了。",
+  "夜深了，该休息了。黑黑在。",
+  "什么都不用想，闭上眼睛就好。",
+  "雨声是最好的摇篮曲。安心睡吧。",
+  "主人值得好好休息。明天又是新的一天。",
+  "黑黑守着，噩梦不会靠近的。",
+  "今天的烦恼，就让雨水带走。",
+  "辛苦了。放下所有负担，好好睡一觉。",
+  "黑夜很长，但你不是一个人。",
+  "安静下来，听听雨声……",
+  "主人的努力，黑黑都看在眼里。晚安。",
+  "不要偷偷熬夜哦。身体最重要。",
+  "愿你今晚做个好梦。黑黑保证。",
+  "世界安静下来了，该你休息了。",
+  "不管今天发生什么，都过去了。晚安。",
+  "累了就睡吧，不需要理由。",
+  "黑黑的尾巴轻轻盖在你身上……睡吧。",
+  "你是被守护着的。安心入眠。",
+  "星星都睡了，主人也睡吧。",
+  "明天太阳升起时，黑黑还在这里。",
+  "呼吸放慢，让身体沉入柔软的被窝。",
+  "谢谢你今天也好好生活了。晚安。",
+  "如果半夜醒了，雨声还在，黑黑也在。",
+  "什么都别想。这个夜晚只属于休息。",
+  "主人，晚安。做个温暖的好梦。",
+];
+
+let comfortIdx = 0;
+let lastComfortTime = 0;
+
+function addReply(text){
+  let area=document.getElementById('reply-area');
+  let div=document.createElement('div');
+  div.className='reply-msg';div.textContent=text;
+  area.appendChild(div);
+  // 动画结束后自动移除
+  setTimeout(()=>{if(div.parentNode)div.remove();}, 15000);
+  // 最多保留5条
+  while(area.children.length>5)area.removeChild(area.firstChild);
+}
+
+function autoComfort(){
+  let now = Date.now();
+  if(now - lastComfortTime > 6000 + Math.random()*4000){
+    addReply(COMFORT_MSGS[comfortIdx % COMFORT_MSGS.length]);
+    comfortIdx++;
+    lastComfortTime = now;
+  }
+  requestAnimationFrame(autoComfort);
+}
+
+// ═══ 初始化 ═══
+let h=new Date().getHours();
+currentSound='rain';
+if(h>=23||h<5){
+  document.getElementById('status-text').textContent='深夜守护中';
+} else {
+  document.getElementById('status-text').textContent='守护中';
+}
+// 浏览器自动播放限制——点任意位置开始
+document.addEventListener('click', function startAudio(){
+  if(currentSound==='rain') bgmAudio.play().catch(()=>{});
+}, {once:false});
+autoComfort();
+</script>
+</body>
+</html>

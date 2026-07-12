@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍊 橘橘大胃王 · Meow Cafe</title>
+<script src="config.js"></script>
+<script src="stats.js"></script>
+<script src="sound.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(180deg, #fff3e6 0%, #ffe4cc 50%, #ffd6b3 100%);
+    overflow: hidden; height: 100vh; user-select: none; touch-action: none;
+  }
+  #back {
+    position: fixed; top: 20px; left: 20px; z-index: 20;
+    background: rgba(255,255,255,0.9); color: #e8773b;
+    border: 2px solid #ff9a56; border-radius: 25px;
+    padding: 8px 20px; font-size: 15px; cursor: pointer;
+    text-decoration: none; font-weight: 600;
+  }
+  #back:hover { background: #ff9a56; color: #fff; }
+  #hud {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 20; display: flex; gap: 12px; pointer-events: none;
+    background: rgba(255,248,240,0.85); border-radius: 20px;
+    padding: 6px 16px; box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+  }
+  #hud span { font-size: 22px; font-weight: 700; color: #e8773b; }
+  #hud .lbl { font-size: 11px; color: #b8784a; }
+  #stageBar {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 20; pointer-events: none; display: flex; gap: 8px; align-items: center;
+  }
+  #stageBar .s { font-size: 24px; opacity: 0.3; transition: all 0.4s; }
+  #stageBar .s.on { opacity: 1; transform: scale(1.4); }
+  #stageBar .arr { color: #d4a080; font-size: 14px; }
+
+  #start, #end {
+    position: fixed; inset:0; z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.4);
+  }
+  #start .card, #end .card {
+    background: #fff; border-radius: 25px; padding: 36px;
+    text-align: center; max-width: 420px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  #start h1 { font-size: 38px; color: #e8773b; margin-bottom: 5px; }
+  #start p { color: #8b6f5e; margin-bottom: 20px; font-size: 15px; line-height: 1.7; }
+  .btn {
+    display: inline-block; padding: 15px 45px; background: #ff9a56; color: #fff;
+    border: none; border-radius: 50px; font-size: 20px; font-weight: 700;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .btn:hover { transform: scale(1.05); background: #e8773b; }
+  .btn2 { background: #fff; color: #ff9a56; border: 2px solid #ff9a56; }
+  .btn2:hover { background: #fff5ed; }
+  #end h2 { font-size: 32px; color: #e8773b; }
+  #end .big { font-size: 56px; font-weight: 800; color: #ff9a56; margin: 10px 0; }
+  #end .cmt { font-size: 16px; color: #8b6f5e; margin-bottom: 10px; }
+  #end .ranks { margin-bottom: 14px; text-align: left; }
+  #end .rr { display: flex; justify-content: space-between; padding: 4px 12px;
+    margin: 2px 0; border-radius: 8px; font-size: 14px; }
+  .rr.g { background: #FFF8E1; color: #F59E0B; font-weight: 700; }
+  .rr.s { background: #F5F5F5; color: #9E9E9E; }
+  .rr.b { background: #FFF0E5; color: #E8773B; }
+  #end { display: none; }
+</style>
+</head>
+<body>
+
+<a id="back" href="index.html">← 回咖啡馆</a>
+
+<div id="hud">
+  <span>⏱️ <span id="timer">30</span></span>
+  <span>🥫 <span id="score">0</span></span>
+  <span id="rankEmoji">😿</span>
+</div>
+
+<div id="stageBar">
+  <span class="s" id="sg0">😿</span><span class="arr">→</span>
+  <span class="s" id="sg1">😋</span><span class="arr">→</span>
+  <span class="s" id="sg2">😆</span><span class="arr">→</span>
+  <span class="s" id="sg3">🤤</span><span class="arr">→</span>
+  <span class="s" id="sg4">🤰</span>
+</div>
+
+<div id="start">
+  <div class="card">
+    <h1>🍊 橘橘大胃王</h1>
+    <p>🖱️ <b>按住拖拽橘橘</b><br>接住天上掉下来的食物！</p>
+    <p style="font-size:13px;color:#b8a090;">🐟食物+1 &nbsp; 🐭老鼠-1 &nbsp; 越吃越胖~</p>
+    <button class="btn" onclick="go()">🏆 开始</button>
+  </div>
+</div>
+
+<div id="end">
+  <div class="card">
+    <h2 id="et">🍊 时间到！</h2>
+    <div class="big" id="es">0</div>
+    <div class="cmt" id="ec"></div>
+    <div class="ranks" id="er"></div>
+    <button class="btn" onclick="go()">🔄 再来</button>
+    <button class="btn btn2" onclick="location='index.html'">🏠 回咖啡馆</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════ 橘橘大胃王 v4 · 稳定版 ═══════════════
+
+const DUR = 30;
+const LEVELS = [
+  { min: 0,  emoji: '😿', name: '饿饿', belly: 1.0,  gap: 55 },
+  { min: 5,  emoji: '😋', name: '开胃', belly: 1.15, gap: 45 },
+  { min: 12, emoji: '😆', name: '满足', belly: 1.32, gap: 36 },
+  { min: 20, emoji: '🤤', name: '撑了', belly: 1.55, gap: 27 },
+  { min: 30, emoji: '🤰', name: '爆炸', belly: 1.85, gap: 18 },
+];
+const FOODS = ['🐟','🥫','🍗','🧀','🍣','🍖','🥩','🍤','🍕','🍔','🌮','🍜'];
+
+// global state
+let STATE = 'idle'; // idle | play | over
+let pts = 0, sec = DUR, lv = 0, spawnCD = 0;
+let items = [], pops = [];
+let catX = 0, catY = 0, catBelly = 1, catTargetBelly = 1, catSquish = 1;
+let dragged = false;
+
+function go() {
+  document.getElementById('start').style.display = 'none';
+  document.getElementById('end').style.display = 'none';
+  pts = 0; sec = DUR; lv = 0; spawnCD = 0;
+  items = []; pops = [];
+  catX = innerWidth/2; catY = innerHeight*0.7;
+  catBelly = 1; catTargetBelly = 1; catSquish = 1; dragged = false;
+  STATE = 'play';
+  updUI(); updStage();
+}
+
+function lvl(s) {
+  for (let i=LEVELS.length-1; i>=0; i--) if (s >= LEVELS[i].min) return i;
+  return 0;
+}
+
+function over() {
+  STATE = 'over';
+  recordStat('orange_total', pts);
+  playScore();
+  let best = getStats().orange_best || 0;
+  if (pts > best) recordStat('orange_best', pts - best);
+  let ranks = JSON.parse(localStorage.orangeKv4||'[]');
+  ranks.push({s:pts,d:new Date().toLocaleDateString()});
+  ranks.sort((a,b)=>b.s-a.s);
+  ranks = ranks.slice(0,10);
+  localStorage.orangeKv4 = JSON.stringify(ranks);
+
+  lv = lvl(pts); let L = LEVELS[lv];
+  document.getElementById('et').textContent = L.emoji+' 橘橘'+L.name+'了！';
+  document.getElementById('es').textContent = pts+'罐';
+  document.getElementById('ec').textContent = '橘橘现在：'+L.emoji+' '+L.name;
+  let rhtml = ranks.map((r,i)=>{
+    let c = i==0?'g':i==1?'s':i==2?'b':'';
+    let m = i==0?'🥇':i==1?'🥈':i==2?'🥉':(i+1);
+    return `<div class="rr ${c}"><span>${m}</span><span>${r.s}罐</span><span>${r.d}</span></div>`;
+  }).join('');
+  document.getElementById('er').innerHTML = rhtml || '<p style="color:#b8a090;">还没有记录喵~</p>';
+  document.getElementById('end').style.display = 'flex';
+}
+
+function updUI() {
+  document.getElementById('timer').textContent = Math.ceil(Math.max(0,sec));
+  document.getElementById('score').textContent = pts;
+  document.getElementById('rankEmoji').textContent = LEVELS[lv].emoji;
+}
+function updStage() {
+  for (let i=0;i<5;i++) {
+    let el = document.getElementById('sg'+i);
+    if (el) { if (i<=lv) el.classList.add('on'); else el.classList.remove('on'); }
+  }
+}
+
+// ═══════════════ P5 ═══════════════
+new p5(function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(p.windowWidth, p.windowHeight);
+    c.style('position','fixed'); c.style('top','0'); c.style('left','0'); c.style('z-index','1');
+    p.pixelDensity(1);
+  };
+
+  p.draw = function() {
+    p.clear();
+    if (STATE !== 'play') {
+      // Still draw cat in idle
+      if (STATE==='idle') { catX=p.width/2; catY=p.height*0.7; }
+      drawCat();
+      return;
+    }
+
+    // === timer ===
+    sec -= 1/p.frameRate();
+    if (sec <= 0) { sec=0; over(); }
+
+    // === spawn ===
+    spawnCD--;
+    if (spawnCD <= 0) {
+      let L = LEVELS[lv];
+      let x = p.random(40, p.width-40);
+      if (p.random() < 0.12 + lv*0.03) {
+        items.push({x: x, y: -30, vy: 1.8+p.random(2)+lv*0.2, vx: p.random(-0.6,0.6), type:'rat', rot:0});
+      } else {
+        items.push({x: x, y: -30, vy: 1.8+p.random(2)+lv*0.2, vx: p.random(-0.6,0.6), type:'food',
+          rot: p.random(p.TWO_PI), rv: p.random(-0.05,0.05), sz: 22+p.random(10),
+          lbl: FOODS[Math.floor(p.random()*FOODS.length)]});
+      }
+      spawnCD = L.gap;
+    }
+
+    // === move & collide items ===
+    let toRemove = [];
+    for (let i=0; i<items.length; i++) {
+      let it = items[i];
+      it.y += it.vy; it.x += it.vx;
+      if (it.type==='food') it.rot += it.rv;
+      if (it.y > p.height+60) { toRemove.push(i); continue; }
+
+      let dx = catX-it.x, dy = catY-it.y;
+      let dist = Math.sqrt(dx*dx+dy*dy);
+      let hitR = it.type==='rat' ? catSize()*0.6 : catSize()*0.8;
+      if (dist < hitR) {
+        if (it.type==='food') {
+          pts++;
+          catSquish = 0.75;
+          let nl = lvl(pts);
+          if (nl !== lv) {
+            lv = nl;
+            catTargetBelly = LEVELS[nl].belly;
+            pops.push({x:catX, y:catY-catSize()*1.2, txt:LEVELS[nl].emoji+' '+LEVELS[nl].name+'!', life:50});
+            updStage();
+          }
+        } else {
+          pts = Math.max(0, pts-1);
+          lv = lvl(pts);
+          catTargetBelly = LEVELS[lv].belly;
+          updStage();
+        }
+        toRemove.push(i);
+      }
+    }
+    // Remove items (reverse to keep indices)
+    for (let i=toRemove.length-1; i>=0; i--) {
+      items.splice(toRemove[i], 1);
+    }
+    toRemove = [];
+
+    // === smooth cat ===
+    catBelly += (catTargetBelly - catBelly)*0.06;
+    catSquish += (1 - catSquish)*0.14;
+
+    // === pops ===
+    for (let i=pops.length-1; i>=0; i--) {
+      pops[i].y -= 1.2; pops[i].life--;
+      if (pops[i].life<=0) pops.splice(i,1);
+    }
+
+    updUI();
+    if (sec <= 0) { over(); drawCat(); return; }
+
+    // === draw items ===
+    for (let it of items) {
+      if (it.type==='rat') {
+        p.push(); p.translate(it.x, it.y);
+        p.fill('#777'); p.noStroke();
+        p.ellipse(0,0,26,16); p.ellipse(13,0,9,7);
+        p.fill('#FFB6C1'); p.ellipse(15,-3,5,4);
+        p.fill(0); p.ellipse(17,-4,2,2);
+        p.stroke('#777'); p.strokeWeight(1);
+        p.line(-14,-9,-7,-7); p.line(0,-8,4,-7);
+        p.pop();
+      } else {
+        p.push(); p.translate(it.x, it.y); p.rotate(it.rot);
+        p.fill('#FFE066'); p.stroke('#D49520'); p.strokeWeight(1.5);
+        p.rect(-it.sz*0.3,-it.sz*0.45,it.sz*0.6,it.sz*0.9);
+        p.fill('#D0D0D0'); p.noStroke();
+        p.rect(-it.sz*0.32,-it.sz*0.5,it.sz*0.64,it.sz*0.1);
+        p.textAlign(p.CENTER,p.CENTER);
+        p.textSize(it.sz*0.5);
+        p.text(it.lbl, 0, 2);
+        p.pop();
+      }
+    }
+
+    // === pops text ===
+    p.textAlign(p.CENTER);
+    for (let pp of pops) {
+      let a = pp.life/50*255;
+      let cols = ['#c4947a','#d49520','#e8773b','#e83020','#c01020'];
+      p.fill(cols[Math.min(lv,4)]); p.textSize(18);
+      p.text(pp.txt, pp.x, pp.y);
+    }
+
+    // === cat ===
+    drawCat();
+  };
+
+  function catSize() { return 75; }
+
+  function drawCat() {
+    p.push(); p.translate(catX, catY);
+    let s = 75, b = catBelly;
+
+    // shadow
+    p.fill(0,0,0, dragged?6:3); p.noStroke();
+    p.ellipse(0, s*0.65, s*1.0*b, s*0.16);
+
+    // tail
+    p.stroke('#E8773B'); p.strokeWeight(s*0.08); p.noFill();
+    let as = Math.sin(p.frameCount*0.05)*s*0.22;
+    p.beginShape();
+    p.curveVertex(-s*0.2,s*0.2); p.curveVertex(-s*0.2,s*0.2);
+    p.curveVertex(-s*0.25+as*0.5,s*0.55);
+    p.curveVertex(-s*0.25+as,s*0.78);
+    p.curveVertex(-s*0.25+as,s*0.78);
+    p.endShape();
+
+    // body
+    p.fill('#FF9A56'); p.noStroke();
+    p.push(); p.scale(1, catSquish);
+    p.ellipse(0, s*0.1, s*1.2*b, s*1.05*b);
+    p.pop();
+    // stripes
+    p.stroke('#FDDCB5'); p.strokeWeight(s*0.033);
+    for (let i=0;i<4;i++) {
+      let sy = -s*0.18+i*s*0.2;
+      p.line(-s*0.25*b, sy, s*0.25*b, sy);
+    }
+    p.noStroke();
+
+    // paws
+    p.fill('#FF9A56');
+    p.ellipse(-s*0.27, s*0.52, s*0.24, s*0.15);
+    p.ellipse(s*0.27, s*0.52, s*0.24, s*0.15);
+    p.fill('#FFD1D1');
+    p.ellipse(-s*0.27, s*0.55, s*0.06, s*0.06);
+    p.ellipse(s*0.27, s*0.55, s*0.06, s*0.06);
+
+    // head
+    p.fill('#FF9A56');
+    p.ellipse(0, -s*0.4, s*1.0, s*0.9);
+
+    // ears
+    let wg = Math.sin(p.frameCount*0.04)*s*0.05;
+    p.fill('#E8773B');
+    p.triangle(-s*0.25,-s*0.7-wg, -s*0.48,-s*0.76, -s*0.17,-s*1.06+wg);
+    p.fill('#FFCCD5');
+    p.triangle(-s*0.27,-s*0.72-wg, -s*0.4,-s*0.77, -s*0.2,-s*0.98+wg);
+    p.fill('#E8773B');
+    p.triangle(s*0.25,-s*0.7+wg, s*0.48,-s*0.76, s*0.17,-s*1.06-wg);
+    p.fill('#FFCCD5');
+    p.triangle(s*0.27,-s*0.72+wg, s*0.4,-s*0.77, s*0.2,-s*0.98-wg);
+
+    // eyes (blink every few sec)
+    let blink = (p.frameCount%90 < 5);
+    if (blink) {
+      p.stroke('#5D3A1A'); p.strokeWeight(2);
+      p.line(-s*0.16,-s*0.42,-s*0.04,-s*0.42);
+      p.line(s*0.04,-s*0.42,s*0.16,-s*0.42);
+    } else {
+      p.fill(255); p.noStroke();
+      p.ellipse(-s*0.1,-s*0.42, s*0.15, s*0.17);
+      p.ellipse(s*0.1,-s*0.42, s*0.15, s*0.17);
+      p.fill('#4A7C59');
+      p.ellipse(-s*0.1,-s*0.42, s*0.09, s*0.11);
+      p.ellipse(s*0.1,-s*0.42, s*0.09, s*0.11);
+      p.fill(0);
+      p.ellipse(-s*0.1,-s*0.42, s*0.05, s*0.06);
+      p.ellipse(s*0.1,-s*0.42, s*0.05, s*0.06);
+      p.fill(255);
+      p.ellipse(-s*0.12,-s*0.45, s*0.03, s*0.03);
+      p.ellipse(s*0.08,-s*0.45, s*0.03, s*0.03);
+    }
+
+    // nose
+    p.fill('#FF8A80'); p.noStroke();
+    p.triangle(0,-s*0.3, -s*0.04,-s*0.27, s*0.04,-s*0.27);
+
+    // mouth
+    p.stroke('#B8784A'); p.strokeWeight(1); p.noFill();
+    let hm = Math.min(1, b/1.4);
+    p.arc(-s*0.04,-s*0.24, s*0.07, s*0.07+hm*5, p.PI*0.15, p.PI*0.55);
+    p.arc(s*0.04,-s*0.24, s*0.07, s*0.07+hm*5, p.PI*0.45, p.PI*0.85);
+
+    // whiskers
+    p.stroke('#FDDCB5'); p.strokeWeight(0.5);
+    let wl=s*0.3;
+    p.line(-s*0.18,-s*0.32,-s*0.18-wl,-s*0.36);
+    p.line(-s*0.18,-s*0.28,-s*0.18-wl,-s*0.28);
+    p.line(-s*0.18,-s*0.24,-s*0.18-wl,-s*0.20);
+    p.line(s*0.18,-s*0.32,s*0.18+wl,-s*0.36);
+    p.line(s*0.18,-s*0.28,s*0.18+wl,-s*0.28);
+    p.line(s*0.18,-s*0.24,s*0.18+wl,-s*0.20);
+
+    p.pop();
+  }
+
+  // ═══ drag ═══
+  p.mousePressed = function() {
+    if (STATE!=='play') return;
+    let d = Math.sqrt((p.mouseX-catX)**2+(p.mouseY-catY)**2);
+    if (d < 100) dragged = true;
+  };
+  p.mouseReleased = function() { dragged = false; };
+  p.mouseDragged = function() {
+    if (dragged && STATE==='play') {
+      catX = p.constrain(p.mouseX, 40, p.width-40);
+      catY = p.constrain(p.mouseY, 40, p.height-40);
+    }
+  };
+  p.touchStarted = function() {
+    if (STATE!=='play') return;
+    let d = Math.sqrt((p.mouseX-catX)**2+(p.mouseY-catY)**2);
+    if (d < 120) dragged = true;
+  };
+  p.touchEnded = function() { dragged = false; };
+  p.touchMoved = function() {
+    if (dragged && STATE==='play') {
+      catX = p.constrain(p.mouseX, 40, p.width-40);
+      catY = p.constrain(p.mouseY, 40, p.height-40);
+      return false;
+    }
+  };
+  p.windowResized = function() {
+    p.resizeCanvas(p.windowWidth, p.windowHeight);
+    catX = p.constrain(catX, 40, p.width-40);
+    catY = p.constrain(catY, 40, p.height-40);
+  };
+});
+</script>
+</body>
+</html>

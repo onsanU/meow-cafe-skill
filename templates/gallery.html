@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>喵の绘卷 · Meow Cafe</title>
+<script src="config.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Noto Serif SC", "STSong", "Songti SC", "SimSun", "PingFang SC", serif;
+    background: linear-gradient(180deg, #fdf6f0 0%, #fdf0f5 40%, #fef5f0 100%);
+    min-height: 100vh; overflow-x: auto; overflow-y: hidden;
+    color: #5a3e3a;
+    cursor: grab;
+  }
+  body:active { cursor: grabbing; }
+  body::-webkit-scrollbar { height: 6px; }
+  body::-webkit-scrollbar-thumb { background: #d4b8b0; border-radius: 3px; }
+
+  .back-link {
+    position: fixed; top: 16px; left: 20px; z-index: 20;
+    color: #b89080; text-decoration: none; font-size: 14px;
+    padding: 6px 14px; border: 1px solid #d4c0b8; border-radius: 20px;
+    background: rgba(255,255,255,0.7); transition: all 0.3s;
+  }
+  .back-link:hover { color: #8b5e5e; border-color: #c09890; background: rgba(255,255,255,0.95); }
+
+  .scroll-container {
+    display: flex; height: 100vh; padding: 40px 60px 40px 100px;
+    gap: 0; align-items: center; width: max-content;
+    scroll-behavior: smooth;
+  }
+
+  /* 标题区 */
+  .title-block {
+    flex-shrink: 0; width: 260px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    margin-right: 40px;
+  }
+  .title-block .seal {
+    width: 70px; height: 70px; border: 2px solid #c87060; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #c87060; font-size: 20px; font-weight: 700;
+    transform: rotate(-8deg);
+  }
+  .title-block h1 {
+    font-size: 32px; font-weight: 400; letter-spacing: 6px;
+    color: #5a3e3a; writing-mode: vertical-rl;
+  }
+  .title-block .sub {
+    font-size: 13px; color: #b89890; letter-spacing: 3px;
+    writing-mode: vertical-rl;
+  }
+  .title-block .brush {
+    width: 3px; height: 80px; background: linear-gradient(180deg, transparent, #d4b8b0, transparent);
+  }
+
+  /* 画卷分隔 */
+  .divider {
+    flex-shrink: 0; width: 40px; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .divider .line {
+    width: 2px; height: 60%; background: linear-gradient(180deg, transparent, #e0ccc4, transparent);
+  }
+
+  /* 插画卡片 */
+  .art-card {
+    flex-shrink: 0; display: flex; flex-direction: column;
+    align-items: center; gap: 14px;
+    background: #fffefb; border: 1px solid #e8ddd6;
+    padding: 20px 20px 24px; border-radius: 4px;
+    box-shadow: 2px 3px 12px rgba(120,80,60,0.06);
+    transition: transform 0.4s, box-shadow 0.4s;
+    margin: 0 30px;
+  }
+  .art-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 4px 8px 24px rgba(120,80,60,0.12);
+  }
+  .art-card .frame {
+    width: 280px; height: 280px; border-radius: 2px;
+    overflow: hidden; position: relative;
+    background: #faf7f3;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #e8ddd6;
+  }
+  .art-card .frame img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .art-card .frame .placeholder {
+    font-size: 80px; opacity: 0.5;
+  }
+  .art-card .frame .watermark {
+    position: absolute; bottom: 8px; right: 12px;
+    font-size: 11px; color: rgba(180,140,120,0.5);
+    letter-spacing: 2px;
+  }
+  .art-card .info {
+    text-align: center; display: flex; flex-direction: column; gap: 8px;
+  }
+  .art-card .info .cat-name {
+    font-size: 16px; color: #8b5e5e; letter-spacing: 2px;
+  }
+  .art-card .info .haiku {
+    font-size: 13px; color: #b09088; line-height: 1.8;
+    letter-spacing: 1px; max-width: 240px;
+  }
+  .art-card .info .jp {
+    font-size: 11px; color: #c8b0a8; letter-spacing: 1px;
+  }
+
+  /* 水墨笔触装饰 */
+  .ink-splash {
+    position: fixed; pointer-events: none; z-index: 0;
+    opacity: 0.04; font-size: 200px;
+  }
+
+  @media (max-width: 768px) {
+    .scroll-container { padding: 20px 30px 20px 50px; }
+    .art-card .frame { width: 200px; height: 200px; }
+    .title-block { width: 160px; margin-right: 20px; }
+    .title-block h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">← 回咖啡馆</a>
+
+<div class="scroll-container">
+
+  <!-- 标题 -->
+  <div class="title-block">
+    <div class="seal">絵</div>
+    <h1>喵の绘卷</h1>
+    <div class="brush"></div>
+    <div class="sub">猫猫と喫茶</div>
+    <div class="sub">の物語</div>
+  </div>
+
+  <div class="divider"><div class="line"></div></div>
+
+  <!-- 奶油 -->
+  <div class="art-card">
+    <div class="frame">
+      <img src="奶油.png" alt="奶油" onerror="this.style.display='none';this.nextElementSibling.style.display=''">
+      <span class="placeholder" style="display:none">🐱</span>
+      <span class="watermark">Meow Cafe</span>
+    </div>
+    <div class="info">
+      <div class="cat-name">— 奶 油 —</div>
+      <div class="haiku">轻抚即化<br>一团温柔<br>卧于午后窗台</div>
+      <div class="jp">ふわりとけ<br>やさしさひとつ<br>まどべの猫</div>
+    </div>
+  </div>
+
+  <!-- 橘橘 -->
+  <div class="art-card">
+    <div class="frame">
+      <img src="橘橘.png" alt="橘橘" onerror="this.style.display='none';this.nextElementSibling.style.display=''">
+      <span class="placeholder" style="display:none">🐈</span>
+      <span class="watermark">Meow Cafe</span>
+    </div>
+    <div class="info">
+      <div class="cat-name">— 橘 橘 —</div>
+      <div class="haiku">第几罐了<br>橘色毛团<br>与落日比赛谁圆</div>
+      <div class="jp">いくつめか<br>だいだいいろの<br>ゆうひかな</div>
+    </div>
+  </div>
+
+  <!-- 黑黑 -->
+  <div class="art-card">
+    <div class="frame">
+      <img src="黑黑.png" alt="黑黑" onerror="this.style.display='none';this.nextElementSibling.style.display=''">
+      <span class="placeholder" style="display:none">🐈‍⬛</span>
+      <span class="watermark">Meow Cafe</span>
+    </div>
+    <div class="info">
+      <div class="cat-name">— 黑 黑 —</div>
+      <div class="haiku">梦游深处<br>黑色影子<br>踏着星光独行</div>
+      <div class="jp">ゆめのそこ<br>くろきかげあり<br>ほしをふむ</div>
+    </div>
+  </div>
+
+  <!-- 咪咪 -->
+  <div class="art-card">
+    <div class="frame">
+      <img src="咪咪.png" alt="咪咪" onerror="this.style.display='none';this.nextElementSibling.style.display=''">
+      <span class="placeholder" style="display:none">😺</span>
+      <span class="watermark">Meow Cafe</span>
+    </div>
+    <div class="info">
+      <div class="cat-name">— 咪 咪 —</div>
+      <div class="haiku">店长一喵<br>统领全局<br>咖啡正暖时分</div>
+      <div class="jp">てんちょうの<br>ねこのあくびや<br>コーヒーのゆ</div>
+    </div>
+  </div>
+
+  <div class="divider"><div class="line"></div></div>
+
+  <!-- 咖啡馆场景 -->
+  <div class="art-card">
+    <div class="frame">
+      <img src="" alt="咖啡馆" onerror="this.style.display='none';this.nextElementSibling.style.display=''">
+      <span class="placeholder" style="display:block">☕</span>
+      <span class="watermark">Meow Cafe</span>
+    </div>
+    <div class="info">
+      <div class="cat-name">— Meow Cafe —</div>
+      <div class="haiku">猫猫四只<br>咖啡一杯<br>治愈所有疲惫</div>
+      <div class="jp">ねこよんびき<br>コーヒーいっぱい<br>いやしのじかん</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// 平滑横滑 + 拖拽
+const container = document.querySelector('.scroll-container');
+let isDown = false, startX, scrollLeft;
+
+container.addEventListener('mousedown', e => {
+  isDown = true; container.style.cursor = 'grabbing';
+  startX = e.pageX - container.offsetLeft;
+  scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+});
+
+container.addEventListener('mouseleave', () => { isDown = false; container.style.cursor = 'grab'; });
+container.addEventListener('mouseup', () => { isDown = false; container.style.cursor = 'grab'; });
+
+container.addEventListener('mousemove', e => {
+  if (!isDown) return;
+  e.preventDefault();
+  const x = e.pageX - container.offsetLeft;
+  const walk = (x - startX) * 1.2;
+  window.scrollTo(scrollLeft - walk, 0);
+});
+
+// 滚轮横滑
+window.addEventListener('wheel', e => {
+  if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+    e.preventDefault();
+    window.scrollBy(e.deltaY, 0);
+  }
+}, { passive: false });
+</script>
+
+</body>
+</html>

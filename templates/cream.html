@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐱 奶油摸摸页 · Meow Cafe</title>
+<script src="config.js"></script>
+<script src="stats.js"></script>
+<script src="sound.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #fff5f2 0%, #ffe8e8 50%, #ffd8dc 100%);
+    overflow: hidden;
+    height: 100vh;
+    cursor: pointer;
+    user-select: none;
+  }
+  #back {
+    position: fixed; top: 20px; left: 20px; z-index: 20;
+    background: rgba(255,255,255,0.85); color: #d4687c;
+    border: 2px solid #f4a460; border-radius: 25px;
+    padding: 8px 20px; font-size: 15px; cursor: pointer;
+    text-decoration: none; font-weight: 600;
+    transition: background 0.2s, transform 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  #back:hover { background: #f4a460; color: #fff; transform: scale(1.05); }
+  #info {
+    position: fixed; top: 50%; right: 30px; z-index: 20;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    pointer-events: none;
+  }
+  #info .stat {
+    background: rgba(255,255,255,0.8); border-radius: 15px;
+    padding: 10px 16px; font-size: 14px; color: #8b6f5e;
+    text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: transform 0.3s;
+  }
+  #counter {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    z-index: 20; pointer-events: none;
+    font-size: 16px; color: #c4947a; opacity: 0.8;
+  }
+  /* ── 奶油聊天窗 ── */
+  #chat-panel {
+    position: fixed; bottom: 20px; right: 20px; z-index: 30;
+    width: 280px; max-height: 360px; background: rgba(255,255,255,0.92);
+    border-radius: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column; overflow: hidden;
+    backdrop-filter: blur(8px); border: 1px solid #f0e0d8;
+  }
+  #chat-header {
+    background: linear-gradient(135deg, #F5D5E0, #E5B5C5);
+    padding: 10px 14px; font-size: 14px; font-weight: 600;
+    color: #5a3e3a; display: flex; align-items: center; gap: 8px;
+  }
+  #chat-msgs {
+    flex: 1; overflow-y: auto; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 260px; min-height: 120px;
+  }
+  #chat-msgs::-webkit-scrollbar { width: 4px; }
+  #chat-msgs::-webkit-scrollbar-thumb { background: #e8d5d0; border-radius: 2px; }
+  .chat-bubble {
+    max-width: 85%; padding: 8px 12px; border-radius: 14px;
+    font-size: 13px; line-height: 1.5; word-break: break-word;
+    animation: bubbleIn 0.3s ease;
+  }
+  @keyframes bubbleIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .chat-bubble.cream {
+    align-self: flex-start; background: #F5D5E0; color: #5a3e3a;
+    border-bottom-left-radius: 4px;
+  }
+  .chat-bubble.cream::before { content:'🐱 '; font-size:12px; }
+  .chat-hint {
+    text-align: center; font-size: 11px; color: #c0b0a8;
+    padding: 6px 0; pointer-events: none;
+  }
+  .chat-bubble.user {
+    align-self: flex-end; background: #e8f0fe; color: #3d4a5a;
+    border-bottom-right-radius: 4px;
+  }
+  #chat-input-row {
+    display: flex; border-top: 1px solid #f0e0d8; padding: 8px 10px; gap: 6px;
+  }
+  #chat-input {
+    flex:1; border: 1px solid #e8ddd6; border-radius: 16px;
+    padding: 6px 12px; font-size: 13px; outline: none;
+    background: #fefefe; color: #4a3728;
+  }
+  #chat-input:focus { border-color: #E5B5C5; }
+  #chat-send {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #E5B5C5; color: #fff; border: none;
+    font-size: 16px; cursor: pointer; transition: transform 0.15s;
+  }
+  #chat-send:active { transform: scale(0.9); }
+  @media (max-width: 768px) {
+    #info { right: 5px; gap: 6px; }
+    #info .stat { padding: 6px 10px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<a id="back" href="index.html">← 返回咖啡馆</a>
+
+<div id="info">
+  <div class="stat" id="stat-name">🐱 奶油</div>
+  <div class="stat" id="stat-mood">😊 平静</div>
+  <div class="stat" id="stat-pet">🖐️ 0 摸摸</div>
+</div>
+<div id="counter">💡 点击奶油摸摸它！连续摸有惊喜~</div>
+
+<!-- 💬 奶油聊天窗 -->
+<div id="chat-panel">
+  <div id="chat-header">🐱 奶油 · 温柔陪伴中</div>
+  <div id="chat-msgs">
+    <div class="chat-bubble cream">主人来啦~ 好想你呀！今天过得怎么样？</div>
+  </div>
+  <div class="chat-hint">戳戳奶油，它会回复你哦~</div>
+  <div id="chat-input-row">
+    <input id="chat-input" placeholder="和奶油说说话……" onkeydown="if(event.key==='Enter')sendMsg()">
+    <button id="chat-send" onclick="sendMsg()">➤</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  🐱 奶油摸摸页 · Cream Petting Page
+// ══════════════════════════════════════════
+
+let petCount = 0;
+let moodLevel = 0;
+let purrTexts = [];
+let hearts = [];
+let sparkles = [];
+let pawShakes = 0;
+
+const PURRS = [
+  '呼噜呼噜~', '喵~', '蹭蹭！', '好舒服喵~', '再摸摸嘛~',
+  '呜喵~~', 'prrrr...', '最喜欢主人了！', '=^ω^=', '(=´∇｀=)',
+  '还要还要！', '呼噜噜噜~', '喵呜~❤️', '蹭蹭蹭蹭蹭！',
+];
+
+new p5(function(p) {
+  let creamCat;
+  let canvas;
+
+  p.setup = function() {
+    canvas = p.createCanvas(p.windowWidth, p.windowHeight);
+    canvas.style('position', 'fixed');
+    canvas.style('top', '0');
+    canvas.style('left', '0');
+    canvas.style('z-index', '1');
+    p.pixelDensity(1);
+
+    creamCat = {
+      x: p.width/2,
+      y: p.height/2,
+      baseY: p.height/2,
+      size: 100,
+      targetSize: 100,
+      squish: 1.0,
+      squishRecover: 0.95,
+      earWiggle: 0, earV: 0.03,
+      tailA: 0, tailV: 0.04,
+      blinkT: 80, blinking: false,
+      shakeX: 0, shakeRecover: 0.9,
+      eyesFollowX: 0, eyesFollowY: 0,
+      purrBubble: null,
+      bellyUp: false,
+      bellyProgress: 0,
+    };
+  };
+
+  p.draw = function() {
+    p.clear();
+
+    let c = creamCat;
+    let mx = p.mouseX, my = p.mouseY;
+
+    // === Update ===
+    // Eye follow
+    let dx = mx - c.x, dy = my - c.y;
+    let dist = Math.sqrt(dx*dx+dy*dy);
+    c.eyesFollowX = p.constrain(dx * 0.03, -8, 8);
+    c.eyesFollowY = p.constrain(dy * 0.03, -6, 6);
+
+    // Squish recovery
+    c.squish += (1.0 - c.squish) * (1 - c.squishRecover) * 2;
+    c.size += (c.targetSize - c.size) * 0.1;
+
+    // Shake recovery
+    c.shakeX *= c.shakeRecover;
+    if (Math.abs(c.shakeX) < 0.05) c.shakeX = 0;
+
+    // Animations
+    c.earWiggle += c.earV;
+    c.tailA += c.tailV;
+
+    // Blink
+    c.blinkT--;
+    if (c.blinkT <= 0) { c.blinking = true; c.blinkT = 80 + Math.floor(Math.random()*150); }
+    if (c.blinking && c.blinkT < 75) c.blinking = false;
+
+    // Belly up progress (when mood > 80)
+    if (moodLevel > 80) {
+      c.bellyProgress = Math.min(1, c.bellyProgress + 0.01);
+      c.bellyUp = true;
+    }
+
+    // === Draw Cat ===
+    p.push();
+    p.translate(c.x + c.shakeX, c.y);
+
+    let s = c.size;
+    let bp = c.bellyProgress;
+
+    if (c.bellyUp && bp > 0.3) {
+      // === Belly-up pose ===
+      p.rotate(p.map(bp, 0.3, 1, 0, p.PI));
+
+      // Tail (curled)
+      p.stroke('#E5B5C5'); p.strokeWeight(s*0.1); p.noFill();
+      p.beginShape();
+      p.curveVertex(-s*0.3, s*0.6); p.curveVertex(-s*0.3, s*0.6);
+      p.curveVertex(-s*0.6, s*0.3); p.curveVertex(-s*0.5, s*0.0);
+      p.curveVertex(-s*0.5, s*0.0);
+      p.endShape();
+
+      // Body (belly up)
+      p.fill('#FFF0F3'); p.noStroke();
+      p.ellipse(0, s*0.1, s*1.3, s*1.2);
+      // belly patch
+      p.fill('#FFFDF8');
+      p.ellipse(0, s*0.15, s*0.7, s*0.6);
+
+      // Paws up (slightly bent)
+      p.fill('#F5D5E0');
+      p.ellipse(-s*0.4, -s*0.2, s*0.22, s*0.18);
+      p.ellipse(s*0.4, -s*0.2, s*0.22, s*0.18);
+      // paw pads
+      p.fill('#FFCCD5');
+      p.ellipse(-s*0.4, -s*0.18, s*0.08, s*0.08);
+      p.ellipse(s*0.4, -s*0.18, s*0.08, s*0.08);
+
+      // Head (flipped, looking up at you)
+      p.fill('#F5D5E0');
+      p.ellipse(0, -s*0.5, s*1.0, s*0.9);
+
+      // Ears (flipped)
+      let wg = Math.sin(c.earWiggle)*s*0.06;
+      p.fill('#E5B5C5');
+      p.triangle(-s*0.3, -s*0.7, -s*0.5, -s*1.0, -s*0.15, -s*1.0);
+      p.fill('#FFB3C1');
+      p.triangle(-s*0.28, -s*0.75, -s*0.42, -s*0.93, -s*0.2, -s*0.93);
+      p.fill('#E5B5C5');
+      p.triangle(s*0.3, -s*0.7, s*0.5, -s*1.0, s*0.15, -s*1.0);
+      p.fill('#FFB3C1');
+      p.triangle(s*0.28, -s*0.75, s*0.42, -s*0.93, s*0.2, -s*0.93);
+
+      // Closed happy eyes (upside down U)
+      p.stroke('#8B7355'); p.strokeWeight(2.5);
+      p.noFill();
+      p.arc(-s*0.18, -s*0.52, s*0.17, s*0.14, p.PI, 0);
+      p.arc(s*0.18, -s*0.52, s*0.17, s*0.14, p.PI, 0);
+
+      // Happy mouth
+      p.fill('#FFB6C1'); p.noStroke();
+      p.ellipse(0, -s*0.36, s*0.1, s*0.1);
+
+      // Whiskers (soft)
+      p.stroke('#CCC'); p.strokeWeight(0.5);
+      let wl=s*0.35;
+      p.line(-s*0.2,-s*0.46, -s*0.2-wl,-s*0.50);
+      p.line(-s*0.2,-s*0.42, -s*0.2-wl,-s*0.42);
+      p.line(s*0.2,-s*0.46, s*0.2+wl,-s*0.50);
+      p.line(s*0.2,-s*0.42, s*0.2+wl,-s*0.42);
+
+    } else {
+      // === Normal sitting pose ===
+      // Tail
+      p.stroke('#E5B5C5'); p.strokeWeight(s*0.1); p.noFill();
+      let sw = Math.sin(c.tailA)*s*0.4;
+      p.beginShape();
+      p.curveVertex(-s*0.4, s*0.3); p.curveVertex(-s*0.4, s*0.3);
+      p.curveVertex(-s*0.4+sw*0.5, s*0.7);
+      p.curveVertex(-s*0.4+sw, s*1.0);
+      p.curveVertex(-s*0.4+sw, s*1.0);
+      p.endShape();
+
+      // Body
+      p.fill('#F5D5E0'); p.noStroke();
+      p.push();
+      p.scale(1, c.squish);
+      p.ellipse(0, s*0.1, s*1.2, s*1.0);
+      p.pop();
+
+      // Front paws
+      p.fill('#F5D5E0');
+      p.ellipse(-s*0.3, s*0.55, s*0.28, s*0.18);
+      p.ellipse(s*0.3, s*0.55, s*0.28, s*0.18);
+
+      // Head
+      p.fill('#F5D5E0');
+      p.ellipse(0, -s*0.45, s*1.0, s*0.9);
+
+      // Ears
+      let wg = Math.sin(c.earWiggle)*s*0.06;
+      p.fill('#E5B5C5');
+      p.triangle(-s*0.28, -s*0.75-wg, -s*0.52, -s*0.8, -s*0.23, -s*1.15+wg);
+      p.fill('#FFB3C1');
+      p.triangle(-s*0.3, -s*0.77-wg, -s*0.43, -s*0.81, -s*0.27, -s*1.05+wg);
+      p.fill('#E5B5C5');
+      p.triangle(s*0.28, -s*0.75+wg, s*0.52, -s*0.8, s*0.23, -s*1.15-wg);
+      p.fill('#FFB3C1');
+      p.triangle(s*0.3, -s*0.77+wg, s*0.43, -s*0.81, s*0.27, -s*1.05-wg);
+
+      // Eyes
+      if (c.blinking) {
+        p.stroke('#8B7355'); p.strokeWeight(2);
+        p.line(-s*0.2, -s*0.47, -s*0.06, -s*0.47);
+        p.line(s*0.06, -s*0.47, s*0.2, -s*0.47);
+      } else {
+        let ex = c.eyesFollowX, ey = c.eyesFollowY;
+        p.fill(255); p.noStroke();
+        p.ellipse(-s*0.13+ex, -s*0.47+ey, s*0.17, s*0.19);
+        p.ellipse(s*0.13+ex, -s*0.47+ey, s*0.17, s*0.19);
+        p.fill('#4A7C59');
+        p.ellipse(-s*0.13+ex, -s*0.47+ey, s*0.11, s*0.13);
+        p.ellipse(s*0.13+ex, -s*0.47+ey, s*0.11, s*0.13);
+        p.fill(0);
+        p.ellipse(-s*0.13+ex, -s*0.47+ey, s*0.06, s*0.08);
+        p.ellipse(s*0.13+ex, -s*0.47+ey, s*0.06, s*0.08);
+        p.fill(255);
+        p.ellipse(-s*0.15+ex, -s*0.50+ey, s*0.03, s*0.03);
+        p.ellipse(s*0.11+ex, -s*0.50+ey, s*0.03, s*0.03);
+      }
+
+      // Nose
+      p.fill('#FFB6C1'); p.noStroke();
+      p.triangle(0, -s*0.35, -s*0.04, -s*0.31, s*0.04, -s*0.31);
+
+      // Mouth
+      p.stroke('#A8A0A0'); p.strokeWeight(1); p.noFill();
+      p.arc(-s*0.05, -s*0.30, s*0.08, s*0.08, 0, p.PI*0.6);
+      p.arc(s*0.05, -s*0.30, s*0.08, s*0.08, p.PI*0.4, p.PI);
+
+      // Whiskers
+      p.stroke('#CCC'); p.strokeWeight(0.5);
+      let wl=s*0.38;
+      p.line(-s*0.22,-s*0.37, -s*0.22-wl,-s*0.43);
+      p.line(-s*0.22,-s*0.33, -s*0.22-wl,-s*0.33);
+      p.line(-s*0.22,-s*0.29, -s*0.22-wl,-s*0.23);
+      p.line(s*0.22,-s*0.37, s*0.22+wl,-s*0.43);
+      p.line(s*0.22,-s*0.33, s*0.22+wl,-s*0.33);
+      p.line(s*0.22,-s*0.29, s*0.22+wl,-s*0.23);
+    }
+
+    p.pop();
+
+    // === Purr text bubbles ===
+    for (let i=purrTexts.length-1; i>=0; i--) {
+      let pt = purrTexts[i];
+      pt.y -= pt.vy;
+      pt.alpha -= 0.8;
+      pt.vy *= 1.02;
+      if (pt.alpha <= 0) { purrTexts.splice(i,1); continue; }
+      p.textAlign(p.CENTER);
+      p.textSize(18 + pt.scale * 2);
+      p.fill(180, 100, 80, pt.alpha);
+      p.noStroke();
+      p.text(pt.text, pt.x, pt.y);
+    }
+
+    // === Hearts ===
+    for (let i=hearts.length-1; i>=0; i--) {
+      let h = hearts[i];
+      h.y += h.vy;
+      h.x += h.vx;
+      h.vy -= 0.02;
+      h.alpha -= 1.2;
+      h.size += 0.3;
+      if (h.alpha <= 0) { hearts.splice(i,1); continue; }
+      p.push();
+      p.translate(h.x, h.y);
+      p.scale(h.size/20);
+      p.fill(255, h.r, h.r+80, h.alpha);
+      p.noStroke();
+      p.beginShape();
+      p.vertex(0, 3);
+      p.bezierVertex(-5, -3, -10, 2, 0, 10);
+      p.bezierVertex(10, 2, 5, -3, 0, 3);
+      p.endShape();
+      p.pop();
+    }
+
+    // === Sparkles ===
+    for (let i=sparkles.length-1; i>=0; i--) {
+      let sp = sparkles[i];
+      sp.x += sp.vx; sp.y += sp.vy;
+      sp.alpha -= 1.0;
+      if (sp.alpha <= 0) { sparkles.splice(i,1); continue; }
+      p.push(); p.translate(sp.x, sp.y);
+      p.fill(255, 220, 150, sp.alpha); p.noStroke();
+      let a = p.PI/5;
+      p.beginShape();
+      for (let j=0;j<10;j++) {
+        let r=j%2===0?3:6;
+        p.vertex(p.cos(j*a-p.HALF_PI)*r, p.sin(j*a-p.HALF_PI)*r);
+      }
+      p.endShape(p.CLOSE);
+      p.pop();
+    }
+
+    // === Mood decay ===
+    moodLevel = Math.max(0, moodLevel - 0.05);
+    updateUI();
+  };
+
+  p.mousePressed = function() {
+    let c = creamCat;
+    // Check if click is near the cat
+    let dx = p.mouseX - c.x, dy = p.mouseY - c.y;
+    let dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist > c.size * 1.5) return;
+
+    petCount++;
+    moodLevel = Math.min(100, moodLevel + 8);
+    recordStat('cream_pets');
+    playPurr();
+    c.squish = 0.75;
+    c.targetSize = c.size + 15;
+    setTimeout(() => { c.targetSize = 100; }, 200);
+
+    // Shake (happy wiggle)
+    c.shakeX = (Math.random()-0.5) * 12;
+
+    // Heart burst
+    for (let i=0; i<6; i++) {
+      hearts.push({
+        x: c.x + (Math.random()-0.5)*60,
+        y: c.y - c.size*0.6,
+        vy: -2 - Math.random()*3,
+        vx: (Math.random()-0.5)*2,
+        alpha: 100,
+        size: 14 + Math.random()*12,
+        r: Math.floor(200+Math.random()*55),
+      });
+    }
+
+    // Purr text
+    let text = PURRS[Math.floor(Math.random()*PURRS.length)];
+    if (petCount >= 20) text = '主人我好爱你喵！！！💕';
+    else if (petCount >= 15) text = '已经离不开主人了喵~~~';
+    else if (petCount >= 10) text = '呜呜好幸福喵！！！';
+    purrTexts.push({
+      x: c.x + (Math.random()-0.5)*80,
+      y: c.y - c.size*0.7,
+      vy: 1.5,
+      alpha: 90,
+      text: text,
+      scale: Math.floor(Math.random()*3),
+    });
+
+    // Sparkles
+    for (let i=0; i<4; i++) {
+      sparkles.push({
+        x: c.x+(Math.random()-0.5)*80,
+        y: c.y-c.size*0.5,
+        vx: (Math.random()-0.5)*2,
+        vy: -1-Math.random()*2,
+        alpha: 80,
+      });
+    }
+
+    // Belly up trigger
+    if (moodLevel >= 90 && !c.bellyUp) {
+      purrTexts.push({
+        x: c.x, y: c.y-c.size*0.5,
+        vy: 1.2, alpha: 100,
+        text: '翻肚皮啦！！！(≧∇≦)',
+        scale: 1,
+      });
+    }
+
+    updateUI();
+  };
+
+  p.windowResized = function() {
+    p.resizeCanvas(p.windowWidth, p.windowHeight);
+    creamCat.x = p.width/2;
+    creamCat.y = p.height/2;
+    creamCat.baseY = p.height/2;
+  };
+
+  function updateUI() {
+    let moodEl = document.getElementById('stat-mood');
+    let petEl = document.getElementById('stat-pet');
+    let counterEl = document.getElementById('counter');
+
+    let moodText = '😊 平静';
+    if (moodLevel > 80) moodText = '🥰 超幸福';
+    else if (moodLevel > 50) moodText = '😆 开心';
+    else if (moodLevel > 20) moodText = '🙂 舒服';
+    moodEl.textContent = moodText + ' ' + Math.floor(moodLevel) + '%';
+
+    petEl.textContent = '🖐️ ' + petCount + ' 摸摸';
+
+    if (petCount >= 20) counterEl.textContent = '🏆 奶油彻底沦陷了！你是它最爱的人~';
+    else if (petCount >= 15) counterEl.textContent = '💕 奶油已经离不开你了！';
+    else if (petCount >= 10) counterEl.textContent = '😻 奶油超级开心！翻肚皮了~';
+    else if (petCount >= 5) counterEl.textContent = '😊 奶油很喜欢你呢！继续摸摸~';
+    else if (petCount > 0) counterEl.textContent = '💡 再摸摸奶油吧~它很开心！';
+  }
+});
+
+// ═══ 💬 奶油聊天窗 ═══
+const CREAM_CHAT = [
+  "主人今天累不累呀？累了就靠着我休息一会儿~",
+  "外面天气好好，想和主人一起去晒太阳……",
+  "刚刚数了一下，主人已经摸了人家好多次啦~好幸福！",
+  "主人吃饭了吗？不要饿着自己哦！",
+  "我一直在等主人来呢……（蹭蹭）",
+  "今天有什么开心的事吗？说给奶油听听~",
+  "不管发生什么，奶油都会一直陪着主人的！",
+  "主人的手好温暖……再摸摸我好不好？",
+  "嘻嘻，看到主人心情就变好了~",
+  "主人主人，我刚刚梦到你了！",
+  "奶油最喜欢主人了，没有之一！",
+  "累了的话就休息吧，奶油帮你看着~",
+  "主人笑起来最好看了，要多笑哦！",
+  "今天晚上会冷，主人记得盖好被子~",
+  "奶油会一直在这里等主人，不着急，慢慢来~",
+];
+
+function addCreamMsg(text) {
+  let msgs = document.getElementById('chat-msgs');
+  let div = document.createElement('div');
+  div.className = 'chat-bubble cream';
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  while (msgs.children.length > 30) msgs.removeChild(msgs.firstChild);
+}
+
+function addUserMsg(text) {
+  let msgs = document.getElementById('chat-msgs');
+  let div = document.createElement('div');
+  div.className = 'chat-bubble user';
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  while (msgs.children.length > 30) msgs.removeChild(msgs.firstChild);
+}
+
+// 🤖 AI关键词匹配安慰回复
+const AI_REPLIES = {
+  tired: [
+    "主人辛苦了！快躺下，奶油帮你踩踩肩~ 呼噜呼噜……",
+    "累了就休息吧，不要硬撑哦。奶油一直在这里~",
+    "今天一定很忙吧？来，把头靠在奶油身上，休息一下~",
+  ],
+  sad: [
+    "怎么了主人？不开心的话就和奶油说说，我会认真听的~",
+    "抱抱！把所有不开心都交给奶油吧，我帮你吃掉它们！",
+    "没关系的，难过的时候奶油陪你一起难过，然后我们一起好起来~",
+  ],
+  happy: [
+    "嘻嘻，主人开心奶油也开心！今天一定是美好的一天~",
+    "太好了！主人笑起来最好看了，要多笑哦！",
+    "有什么好事发生吗？快说给奶油听听，我也要一起高兴！",
+  ],
+  worry: [
+    "别担心主人，事情一件一件来，奶油陪你一起面对~",
+    "焦虑的时候深呼吸，奶油数到三：一……二……三……好点了吗？",
+    "不管发生什么，奶油都相信主人能处理好！你最棒了！",
+  ],
+  lonely: [
+    "奶油一直在这里呀，一步都不会走开的~",
+    "主人怎么会是一个人呢？你有奶油、橘橘、黑黑、咪咪，我们都爱你！",
+    "来，奶油蹭蹭你~ 这样就不孤单了吧？",
+  ],
+  love: [
+    "奶油也最爱主人了！！！（疯狂蹭蹭）",
+    "啊啊啊主人说喜欢我！今天是最幸福的一天~",
+    "主人的喜欢是奶油每天最期待的事情！（摇尾巴）",
+  ],
+  default: [
+    "嗯嗯，奶油在听呢~ 主人继续说~",
+    "主人说的每一句话奶油都认真记住了！",
+    "虽然奶油不是很懂，但是陪在主人身边就很开心了~",
+    "主人和奶油聊天，奶油好幸福呀！",
+  ],
+};
+
+function getAIReply(text) {
+  let t = text.toLowerCase();
+  if (/[累困疲乏倦]\s*[死了得很]|好累|累死|疲惫|没精神/.test(t)) return 'tired';
+  if (/[难过伤心哭悲郁闷烦]\s*[死了得很]|不开心|难受|想哭|低落|沮丧|emo/.test(t)) return 'sad';
+  if (/[开心高兴快乐幸福好棒太好了哈哈哈嘻嘻].{0,4}|真[好棒]|太[好棒]/.test(t)) return 'happy';
+  if (/[担心焦虑紧张害怕不安烦恼迷茫].{0,4}|怎么办|不知道|不确定|怕/.test(t)) return 'worry';
+  if (/[孤独寂寞孤单一个人].{0,4}|没人|想[你我]了|陪我/.test(t)) return 'lonely';
+  if (/[喜欢爱].{0,4}[你我]|[你我].{0,4}[喜欢爱]|爱你|想你|超[级爱]/.test(t)) return 'love';
+  return 'default';
+}
+
+function sendMsg() {
+  let input = document.getElementById('chat-input');
+  let text = input.value.trim();
+  if (!text) return;
+  addUserMsg(text);
+  input.value = '';
+  // AI匹配回复
+  let category = getAIReply(text);
+  let replies = AI_REPLIES[category];
+  let reply = replies[Math.floor(Math.random() * replies.length)];
+  setTimeout(() => addCreamMsg(reply), 500 + Math.random() * 800);
+}
+
+// 奶油主动发消息（每15-35秒）
+function autoCreamMsg() {
+  let msg = CREAM_CHAT[Math.floor(Math.random() * CREAM_CHAT.length)];
+  addCreamMsg(msg);
+  setTimeout(autoCreamMsg, 15000 + Math.random() * 20000);
+}
+setTimeout(autoCreamMsg, 8000);
+
+// 点击奶油时也添加一条回复（和摸摸一起触发）
+let origMousePressed = null;
+document.addEventListener('DOMContentLoaded', function() {
+  // 拦截p5的mousePressed太复杂，用独立逻辑：监听canvas点击
+  let canvas = document.querySelector('canvas');
+  if (canvas) {
+    canvas.addEventListener('click', function(e) {
+      // 判断是否点到了奶油身上（和p5的dist逻辑类似）
+      let cx = window.innerWidth/2, cy = window.innerHeight/2;
+      let d = Math.sqrt((e.clientX-cx)**2 + (e.clientY-cy)**2);
+      if (d < 200) {
+        let msg = CREAM_CHAT[Math.floor(Math.random() * CREAM_CHAT.length)];
+        addCreamMsg(msg);
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>咪咪 · 店长控制台</title>
+<script src="config.js"></script>
+<script src="stats.js"></script>
+<script src="sound.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1410; }
+  canvas { display: block; position: fixed; top: 0; left: 0; }
+  #back-link {
+    position: fixed; top: 16px; left: 20px;
+    color: rgba(255,255,255,0.5); text-decoration: none;
+    font-size: 14px; z-index: 20;
+  }
+  #back-link:hover { color: rgba(255,255,255,0.9); }
+</style>
+</head>
+<body>
+<a id="back-link" href="index.html">← 回咖啡馆</a>
+<script>
+// 监控数据（随机变化）
+let monitorData = {
+  cream: { mood: '😊', status: '正在被主人摸摸', count: 0, icon: '🐱', color: '#F5E6D3' },
+  orange: { mood: '🍊', status: '刚吃完第', count: 1, icon: '🐈', color: '#FF9A56' },
+  black: { mood: '💤', status: '梦游第', count: 1, icon: '🐈‍⬛', color: '#3D3D3D' },
+};
+
+const BOSS_LINES = CATS_CONFIG.mimi.bossLines;
+
+new p5(function(p) {
+  let bubble = null;
+  let floatY = 0;
+  let earWiggle = 0;
+  let tailSwing = 0;
+  let blinkTimer = 0, blinkState = false, nextBlink = 120;
+  let mx = 0, my = 0;
+  let screenGlitch = 0;
+  let statusTimers = { cream: 0, orange: 0, black: 0 };
+
+  p.setup = function() {
+    p.createCanvas(p.windowWidth, p.windowHeight);
+    p.pixelDensity(1);
+    mx = p.width/2; my = p.height/2;
+    randomizeStatus('cream');
+    randomizeStatus('orange');
+    randomizeStatus('black');
+  };
+
+  p.windowResized = function() { p.resizeCanvas(p.windowWidth, p.windowHeight); };
+
+  function randomizeStatus(cat) {
+    let d = monitorData[cat];
+    if (cat === 'cream') {
+      d.count = p.floor(p.random(15, 60));
+      let moods = ['😊','😌','😴','🥰'];
+      let sts = ['正在被摸摸','休息中……','蹭蹭模式','打盹中…'];
+      d.mood = p.random(moods);
+      d.status = p.random(sts);
+    } else if (cat === 'orange') {
+      d.count = p.floor(p.random(1, 15));
+      d.mood = p.random(['🍊','😋','🤤','😺']);
+      d.status = '已消灭罐头×';
+    } else {
+      d.count = p.floor(p.random(1, 7));
+      d.mood = p.random(['💤','😴','🌙','✨']);
+      d.status = '梦境深度';
+    }
+  }
+
+  p.draw = function() {
+    let W=p.width, H=p.height;
+    mx = p.lerp(mx, p.mouseX, 0.06);
+    my = p.lerp(my, p.mouseY, 0.06);
+
+    floatY = p.sin(p.frameCount*0.025)*3;
+    earWiggle = p.sin(p.frameCount*0.06)*2;
+    tailSwing = p.sin(p.frameCount*0.05)*0.4;
+    screenGlitch = (p.frameCount%180 < 4) ? p.random(-2,2) : 0;
+
+    // ═══ 背景：暗色监控室 ═══
+    for (let y=0; y<H; y++) {
+      let t=y/H;
+      p.stroke(p.lerp(20,15,t), p.lerp(16,12,t), p.lerp(22,18,t));
+      p.line(0,y,W,y);
+    }
+
+    // ═══ 监控屏幕背景墙 ═══
+    let screenY = H*0.08, screenH = H*0.52, screenW = W*0.9, screenX = W*0.05;
+    p.noStroke();
+    p.fill(25,22,30); p.rect(screenX,screenY,screenW,screenH,12);
+    p.fill(18,15,22); p.rect(screenX+8,screenY+8,screenW-16,screenH-16,8);
+
+    // 屏幕扫描线
+    for (let y=screenY+10; y<screenY+screenH-10; y+=3) {
+      p.stroke(30,28,38,15); p.strokeWeight(1);
+      p.line(screenX+10,y,screenX+screenW-10,y);
+    }
+
+    // ═══ 3个监控卡片 ═══
+    let cardW = (screenW-60)/3, cardH = screenH-40;
+    let cards = [
+      { name:'奶油', key:'cream', x:screenX+20 },
+      { name:'橘橘', key:'orange', x:screenX+20+cardW+10 },
+      { name:'黑黑', key:'black', x:screenX+20+(cardW+10)*2 },
+    ];
+
+    for (let c of cards) {
+      let cx = c.x, cy = screenY+20;
+      let d = monitorData[c.key];
+
+      // 卡片背景
+      p.noStroke();
+      p.fill(22,18,28,220); p.rect(cx,cy,cardW,cardH,8);
+      p.stroke(d.color); p.strokeWeight(2);
+      p.fill(22,18,28,220); p.rect(cx,cy,cardW,cardH,8);
+      p.noStroke();
+
+      // 猫猫emoji大图标
+      p.fill(d.color);
+      p.textAlign(p.CENTER); p.textSize(p.min(cardW*0.5, 60));
+      p.text(d.icon, cx+cardW/2, cy+cardH*0.32);
+
+      // 名字标签
+      p.fill(255); p.textSize(p.min(cardW*0.18, 20));
+      p.text(c.name, cx+cardW/2, cy+cardH*0.55);
+
+      // 状态描述
+      p.fill(180,175,190); p.textSize(p.min(cardW*0.12, 13));
+      let statusText = c.key==='orange' ? d.status+d.count : 
+                       c.key==='black' ? d.status+'：'+d.count :
+                       d.status;
+      p.text(statusText, cx+cardW/2, cy+cardH*0.68);
+
+      // 心情
+      p.textSize(p.min(cardW*0.15, 18));
+      p.text(d.mood, cx+cardW/2, cy+cardH*0.82);
+
+      // 闪烁指示灯
+      let dotAlpha = 180+75*p.sin(p.frameCount*0.05+c.x);
+      p.fill(100,255,150,dotAlpha); p.circle(cx+cardW-16,cy+14,6);
+    }
+
+    // 状态随机更新
+    for (let cat of ['cream','orange','black']) {
+      statusTimers[cat]--;
+      if (statusTimers[cat] <= 0) {
+        randomizeStatus(cat);
+        statusTimers[cat] = p.floor(p.random(180, 400));
+      }
+    }
+
+    // ═══ 控制台桌面 ═══
+    let deskY = screenY + screenH + 5;
+    let deskH = H - deskY;
+    p.noStroke();
+    p.fill(60,40,30); p.rect(0,deskY,W,deskH);
+    p.fill(75,50,38); p.rect(0,deskY,W,4);
+    // 桌面木纹
+    for (let x=0; x<W; x+=p.random(30,80)) {
+      p.stroke(65,45,35,40); p.strokeWeight(1);
+      p.line(x,deskY+12,x+p.random(20,50),deskY+12+p.random(-2,2));
+    }
+
+    // 键盘/按钮装饰
+    p.fill(40,30,25); p.rect(W*0.08,deskY+deskH*0.55,W*0.22,deskH*0.22,6);
+    for (let ky=0; ky<3; ky++)
+      for (let kx=0; kx<6; kx++) {
+        p.fill(50,38,32); p.rect(W*0.09+kx*W*0.035,deskY+deskH*0.57+ky*deskH*0.06,W*0.028,deskH*0.04,3);
+      }
+
+    // 咖啡杯
+    p.fill(180,150,130); p.rect(W*0.78,deskY+deskH*0.4,W*0.06,deskH*0.35,0,0,4,4);
+    p.fill(200,170,150); p.rect(W*0.78,deskY+deskH*0.4,W*0.06,deskH*0.35,0,0,4,4);
+    p.fill(90,60,40); p.ellipse(W*0.81,deskY+deskH*0.43, W*0.05,deskH*0.08);
+    // 热气
+    for (let s=0; s<3; s++) {
+      let sx = W*0.79 + s*W*0.018 + p.sin(p.frameCount*0.04+s)*3;
+      p.stroke(200,190,180,40-s*10); p.strokeWeight(1.5);
+      p.line(sx,deskY+deskH*0.36,sx-3,deskY+deskH*0.22);
+    }
+
+    // ═══════════════════════════════
+    //  咪咪店长！坐在控制台前
+    // ═══════════════════════════════
+    let mxpos = W*0.55 + p.sin(p.frameCount*0.008)*5;
+    let mypos = deskY - H*0.06 + floatY;
+
+    p.push(); p.translate(mxpos, mypos);
+
+    let s = p.min(W*0.00022, H*0.00028) * (1+p.min(W,H)/800*0.2);
+
+    // 身体
+    p.noStroke();
+    p.fill(255,240,225);
+    p.ellipse(0, s*0.15, s*1.1, s*0.75);
+    // 肚皮白色
+    p.fill(255,250,245);
+    p.ellipse(0, s*0.2, s*0.7, s*0.45);
+
+    // 尾巴
+    p.noFill(); p.strokeWeight(s*0.08);
+    p.stroke(255,240,225);
+    p.beginShape();
+    p.curveVertex(-s*0.5, s*0.5);
+    p.curveVertex(-s*0.45, s*0.4);
+    p.curveVertex(-s*0.7+tailSwing*15, s*0.15);
+    p.curveVertex(-s*0.65+tailSwing*12, -s*0.1);
+    p.curveVertex(-s*0.5+tailSwing*10, -s*0.2);
+    p.endShape();
+
+    // 头
+    p.fill(255,240,225);
+    p.circle(0, -s*0.4, s*0.82);
+
+    // 耳朵
+    p.fill(255,240,225);
+    p.triangle(-s*0.28,-s*0.7, -s*0.45,-s*1.05, -s*0.1,-s*0.78);
+    p.triangle(s*0.28,-s*0.7, s*0.45,-s*1.05, s*0.1,-s*0.78);
+    p.fill(255,200,180);
+    p.triangle(-s*0.27,-s*0.72, -s*0.4,-s*1.0, -s*0.14,-s*0.78);
+    p.triangle(s*0.27,-s*0.72, s*0.4,-s*1.0, s*0.14,-s*0.78);
+
+    // 脸部淡色区域
+    p.fill(255,250,245);
+    p.ellipse(0, -s*0.28, s*0.5, s*0.32);
+
+    // 眨眼
+    if (!blinkState && p.frameCount>nextBlink) { blinkState=true; blinkTimer=0; }
+    if (blinkState) { blinkTimer++; if(blinkTimer>5){blinkState=false;nextBlink=p.frameCount+p.floor(p.random(90,200));} }
+    let eyeH = blinkState ? s*0.01 : s*0.14;
+    let eyeW = blinkState ? s*0.18 : s*0.11;
+
+    // 眼睛（琥珀色，店长注视）
+    p.fill(255);
+    p.ellipse(-s*0.15,-s*0.4,eyeW,eyeH);
+    p.ellipse(s*0.15,-s*0.4,eyeW,eyeH);
+    if (!blinkState) {
+      p.fill(180,140,80);
+      p.ellipse(-s*0.15,-s*0.4,s*0.08,s*0.11);
+      p.ellipse(s*0.15,-s*0.4,s*0.08,s*0.11);
+      p.fill(40,25,15); p.circle(-s*0.15,-s*0.4,s*0.05);
+      p.circle(s*0.15,-s*0.4,s*0.05);
+      p.fill(255); p.circle(-s*0.17,-s*0.43,s*0.025);
+      p.circle(s*0.13,-s*0.43,s*0.025);
+    }
+
+    // 鼻子
+    p.fill(255,150,140);
+    p.triangle(-s*0.03,-s*0.28,-s*0.01,-s*0.28,-s*0.02,-s*0.24);
+
+    // 嘴巴（微笑）
+    p.stroke(200,150,140,120); p.strokeWeight(s*0.015); p.noFill();
+    p.arc(-s*0.06,-s*0.22,s*0.08,s*0.06,0,p.PI);
+    p.arc(s*0.06,-s*0.22,s*0.08,s*0.06,0,p.PI);
+    p.noStroke();
+
+    // 胡须
+    p.stroke(220,200,180,80); p.strokeWeight(s*0.012);
+    p.line(-s*0.22,-s*0.3, -s*0.42,-s*0.36);
+    p.line(-s*0.22,-s*0.26, -s*0.42,-s*0.26);
+    p.line(-s*0.22,-s*0.22, -s*0.4,-s*0.16);
+    p.line(s*0.22,-s*0.3, s*0.42,-s*0.36);
+    p.line(s*0.22,-s*0.26, s*0.42,-s*0.26);
+    p.line(s*0.22,-s*0.22, s*0.4,-s*0.16);
+    p.noStroke();
+
+    // 前爪（搭在桌边）
+    p.fill(255,245,240);
+    p.ellipse(-s*0.3, s*0.55, s*0.1, s*0.14);
+    p.ellipse(s*0.3, s*0.55, s*0.1, s*0.14);
+
+    // 店长小领结
+    p.fill(220,80,80);
+    p.triangle(-s*0.06,s*0.05, 0,s*0.14, 0,s*0.05);
+    p.triangle(s*0.06,s*0.05, 0,s*0.14, 0,s*0.05);
+    p.fill(180,60,60); p.circle(0,s*0.12,s*0.04);
+
+    p.pop();
+
+    // ═══ 对话气泡 ═══
+    if (bubble) {
+      let el = (p.millis()-bubble.startTime)/1000;
+      let fi = p.min(el/0.3,1), st = p.max(0,1-(el-2.5)/0.7), al = fi*st;
+      if (el>3.2) bubble=null;
+      else if (al>0.01) {
+        let bx = mxpos, by = mypos - s*1.5;
+        p.push();
+        let bw = p.min(p.textWidth(bubble.text)+44, W*0.85), bh=44;
+        p.fill(255,252,248,al*240); p.stroke(180,160,150,al*100); p.strokeWeight(1.5);
+        p.rect(bx-bw/2,by-bh,bw,bh,18);
+        p.noStroke(); p.fill(255,252,248,al*240);
+        p.triangle(bx-8,by+3,bx+8,by+3,bx,by+15);
+        p.noStroke(); p.fill(50,35,30,al*255);
+        p.textAlign(p.CENTER,p.CENTER); p.textSize(p.min(15,W*0.018));
+        p.text(bubble.text,bx,by-bh/2);
+        p.pop();
+      }
+    }
+
+    // 标题
+    p.fill(180,170,160,25);
+    p.textAlign(p.LEFT); p.textSize(p.min(14,W*0.016));
+    p.text('🎛️ 咪咪店长控制台 v1.0', W*0.06, H*0.04);
+
+    // 提示
+    p.fill(180,160,140,25+18*p.sin(p.frameCount*0.03));
+    p.textAlign(p.CENTER); p.textSize(13);
+    p.text('🐱 戳戳咪咪店长汇报工作', W/2, H-22);
+  };
+
+  p.mousePressed = function() {
+    let W=p.width, H=p.height;
+    let deskY = H*0.08 + H*0.52 + 5;
+    let sx = p.min(W*0.00022, H*0.00028)*(1+p.min(W,H)/800*0.2);
+    let mxpos = W*0.55, mypos = deskY - H*0.06 + floatY;
+    let d = p.dist(p.mouseX, p.mouseY, mxpos, mypos);
+
+    if (d < 120) {
+      recordStat('mimi_reports');
+      playPurr();
+      let msg = p.random(BOSS_LINES)
+        .replace('{cream}', monitorData.cream.count)
+        .replace('{orange}', monitorData.orange.count)
+        .replace('{black}', monitorData.black.count);
+      bubble = { text:msg, x:mxpos, y:mypos-sx*1.5, alpha:1, startTime:p.millis() };
+      // 点击时随机刷新状态
+      randomizeStatus(p.random(['cream','orange','black']));
+    }
+  };
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meow Cafe · 人气菜单</title>
+<script src="config.js"></script>
+<script src="sound.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f3f0; min-height: 100vh; color: #3d2e28;
+  }
+  .header {
+    background: linear-gradient(135deg, #d4687c, #e8916a);
+    color: #fff; padding: 18px 20px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 10;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  }
+  .header a { color: #fff; text-decoration: none; font-size: 20px; }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header .badge { background: rgba(255,255,255,0.2); border-radius: 10px; padding: 3px 10px; font-size: 12px; margin-left: 8px; }
+  .banner {
+    margin: 12px 16px; background: linear-gradient(135deg, #fff8f0, #fff0f5);
+    border-radius: 16px; padding: 16px 20px; display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  }
+  .banner .shop-icon { font-size: 44px; }
+  .banner .shop-info h2 { font-size: 17px; color: #3d2e28; }
+  .banner .shop-info p { font-size: 12px; color: #a09088; margin-top: 2px; }
+  .banner .shop-info .stars { color: #f4a460; font-size: 13px; }
+
+  .section-title {
+    margin: 8px 16px 4px; font-size: 15px; color: #8b6f5e; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-title::before { content: ''; width: 3px; height: 16px; background: #d4687c; border-radius: 2px; }
+
+  .menu-list { padding: 0 16px 100px; }
+  .menu-card {
+    background: #fff; border-radius: 14px; margin: 10px 0;
+    display: flex; padding: 12px; gap: 12px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    transition: transform 0.15s;
+    cursor: default;
+    align-items: center;
+  }
+  .menu-card:active { transform: scale(0.98); }
+  .menu-card .img-box {
+    width: 90px; height: 90px; border-radius: 12px; overflow: hidden;
+    flex-shrink: 0; background: #faf8f5;
+    position: relative;
+  }
+  .menu-card .img-box canvas { display: block; }
+  .menu-card .info { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .menu-card .info .name { font-size: 16px; font-weight: 700; color: #3d2e28; }
+  .menu-card .info .desc { font-size: 12px; color: #a09088; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .menu-card .info .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .menu-card .info .tags span {
+    font-size: 10px; padding: 2px 7px; border-radius: 8px;
+    background: #fff5f0; color: #d4687c; border: 1px solid #ffddd5;
+  }
+  .menu-card .info .bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+  .menu-card .info .price { font-size: 20px; font-weight: 800; color: #e85d3a; }
+  .menu-card .info .price .yen { font-size: 13px; }
+  .menu-card .info .sold { font-size: 11px; color: #bbb; margin-left: 8px; }
+  .menu-card .add-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #e85d3a; color: #fff; border: none;
+    font-size: 20px; line-height: 30px; text-align: center;
+    cursor: pointer; transition: transform 0.15s, background 0.15s;
+    flex-shrink: 0;
+  }
+  .menu-card .add-btn:hover { background: #d44a2a; transform: scale(1.1); }
+  .menu-card .add-btn:active { transform: scale(0.9); }
+  .qty-ctrl { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .minus-btn {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #fff; color: #e85d3a; border: 1.5px solid #e85d3a;
+    font-size: 18px; line-height: 24px; text-align: center;
+    cursor: pointer; transition: transform 0.1s;
+  }
+  .minus-btn:active { transform: scale(0.9); }
+  .qty-num { font-size: 15px; font-weight: 700; color: #3d2e28; min-width: 18px; text-align: center; }
+
+  .cart-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #3d2e28; color: #fff;
+    padding: 12px 20px; display: flex; align-items: center; gap: 14px;
+    z-index: 20; box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+  }
+  .cart-bar .cart-icon { font-size: 28px; position: relative; }
+  .cart-bar .cart-icon .count {
+    position: absolute; top: -6px; right: -8px;
+    background: #e85d3a; color: #fff; border-radius: 50%;
+    width: 20px; height: 20px; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .cart-bar .info { flex: 1; }
+  .cart-bar .info .hint { font-size: 12px; color: #aaa; }
+  .cart-bar .info .total { font-size: 18px; font-weight: 700; }
+  .cart-bar .checkout {
+    background: #e85d3a; color: #fff; border: none;
+    padding: 10px 24px; border-radius: 22px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .cart-bar .checkout:hover { background: #d44a2a; }
+
+  @media (max-width: 380px) {
+    .menu-card .img-box { width: 72px; height: 72px; }
+    .menu-card .info .name { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="index.html">←</a>
+  <h1>☕ 人气菜单</h1>
+  <span class="badge">🔥 热销中</span>
+</div>
+
+<div class="banner">
+  <div class="shop-icon">🐱</div>
+  <div class="shop-info">
+    <h2>Meow Cafe · 猫猫咖啡馆</h2>
+    <p>喝咖啡 · 撸猫猫 · 治愈你的每一天</p>
+    <p class="stars">★★★★★ 4.9 · 月销 9999+ · 30分钟送达</p>
+  </div>
+</div>
+
+<div class="section-title">🔥 热销推荐</div>
+
+<div class="menu-list">
+  <!-- 猫爪拿铁 -->
+  <div class="menu-card">
+    <div class="img-box" id="img-latte"></div>
+    <div class="info">
+      <div class="name">🌸 猫爪拿铁</div>
+      <div class="desc">可爱猫爪拉花 · 治愈满分 · 奶油最爱的拿铁</div>
+      <div class="tags"><span>含咖啡因</span><span>热/冰</span><span>🐱奶油推荐</span></div>
+      <div class="bottom">
+        <span class="price"><span class="yen">¥</span>32</span>
+        <span class="sold">月售 3280</span>
+      </div>
+    </div>
+    <div class="qty-ctrl" id="qty-latte">
+      <button class="minus-btn" onclick="changeItem('latte',-1)" style="display:none">−</button>
+      <span class="qty-num" id="num-latte" style="display:none">0</span>
+      <button class="add-btn" id="add-latte" onclick="changeItem('latte',1)">+</button>
+    </div>
+  </div>
+
+  <!-- 喵喵奶茶 -->
+  <div class="menu-card">
+    <div class="img-box" id="img-tea"></div>
+    <div class="info">
+      <div class="name">🧋 喵喵奶茶</div>
+      <div class="desc">甜蜜暖饮 · 猫咪杯套 · 橘橘偷喝过的奶茶</div>
+      <div class="tags"><span>含茶</span><span>热/冰</span><span>🐈橘橘推荐</span></div>
+      <div class="bottom">
+        <span class="price"><span class="yen">¥</span>28</span>
+        <span class="sold">月售 5620</span>
+      </div>
+    </div>
+    <div class="qty-ctrl" id="qty-tea">
+      <button class="minus-btn" onclick="changeItem('tea',-1)" style="display:none">−</button>
+      <span class="qty-num" id="num-tea" style="display:none">0</span>
+      <button class="add-btn" id="add-tea" onclick="changeItem('tea',1)">+</button>
+    </div>
+  </div>
+
+  <!-- 小鱼干套餐 -->
+  <div class="menu-card">
+    <div class="img-box" id="img-fish"></div>
+    <div class="info">
+      <div class="name">🐟 小鱼干套餐</div>
+      <div class="desc">猫咪零食+你的甜点 · 现烤小鱼干×5 · 猫形饼干×3 · 迷你布丁</div>
+      <div class="tags"><span>含海鲜</span><span>双人份</span><span>🐈‍⬛黑黑推荐</span></div>
+      <div class="bottom">
+        <span class="price"><span class="yen">¥</span>58</span>
+        <span class="sold">月售 1890</span>
+      </div>
+    </div>
+    <div class="qty-ctrl" id="qty-fish">
+      <button class="minus-btn" onclick="changeItem('fish',-1)" style="display:none">−</button>
+      <span class="qty-num" id="num-fish" style="display:none">0</span>
+      <button class="add-btn" id="add-fish" onclick="changeItem('fish',1)">+</button>
+    </div>
+  </div>
+</div>
+
+<div class="cart-bar" id="cart-bar">
+  <div class="cart-icon">
+    🛒
+    <span class="count" id="cart-count" style="display:none">0</span>
+  </div>
+  <div class="info">
+    <div class="hint" id="cart-hint">未选购商品</div>
+    <div class="total" id="cart-total">¥0</div>
+  </div>
+  <button class="checkout" id="checkout-btn" disabled>去结算</button>
+</div>
+
+<script>
+// ═══ 购物车 ═══
+// 数据来自 config.js 的 MENU_CONFIG
+const ITEMS = {};
+let cartQty = {};
+MENU_CONFIG.forEach(item => {
+  ITEMS[item.id] = { name: item.name, price: item.price };
+  cartQty[item.id] = 0;
+});
+
+function changeItem(id, delta) {
+  cartQty[id] = Math.max(0, cartQty[id] + delta);
+  if (delta > 0) playCart();
+  let q = cartQty[id];
+  document.getElementById('num-'+id).textContent = q;
+  document.getElementById('num-'+id).style.display = q>0 ? '' : 'none';
+  document.getElementById('add-'+id).style.display = '';  // +号永远显示
+  document.querySelector('#qty-'+id+' .minus-btn').style.display = q>0 ? '' : 'none';
+  updateCart();
+}
+
+function updateCart() {
+  let totalQty = 0, totalPrice = 0;
+  for (let [id, item] of Object.entries(ITEMS)) {
+    totalQty += cartQty[id];
+    totalPrice += cartQty[id] * item.price;
+  }
+  let countEl = document.getElementById('cart-count');
+  let hintEl = document.getElementById('cart-hint');
+  let totalEl = document.getElementById('cart-total');
+  let btn = document.getElementById('checkout-btn');
+
+  if (totalQty === 0) {
+    countEl.style.display = 'none';
+    hintEl.textContent = '未选购商品';
+    totalEl.textContent = '¥0';
+    btn.disabled = true; btn.style.opacity = '0.5';
+  } else {
+    countEl.style.display = 'flex';
+    countEl.textContent = totalQty;
+    hintEl.textContent = '已选' + totalQty + '件';
+    totalEl.textContent = '¥' + totalPrice;
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+}
+
+document.getElementById('checkout-btn').onclick = function() {
+  let items = [];
+  for (let [id, item] of Object.entries(ITEMS)) {
+    if (cartQty[id] > 0) items.push(item.name + ' ×' + cartQty[id]);
+  }
+  let total = 0;
+  for (let [id, item] of Object.entries(ITEMS)) {
+    total += cartQty[id] * item.price;
+  }
+  alert('🐱 咪咪收到订单！\n\n' + items.join('\n') + '\n\n合计 ¥' + total + '\n\n喵~ 您的餐品正在准备中，预计30分钟后送达！');
+  playSuccess();
+  cartQty = {};
+  Object.keys(ITEMS).forEach(id => {
+    cartQty[id] = 0;
+    document.getElementById('num-'+id).style.display = 'none';
+    document.getElementById('add-'+id).style.display = '';
+    document.querySelector('#qty-'+id+' .minus-btn').style.display = 'none';
+  });
+  updateCart();
+};
+// ═══ P5 插画 ═══
+// 猫爪拿铁插画
+new p5(function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(90, 90); c.parent('img-latte'); p.pixelDensity(1);
+  };
+  p.draw = function() {
+    p.background(245,235,225);
+    // 咖啡杯
+    p.fill(255); p.stroke(180,140,120); p.strokeWeight(1.5);
+    p.rect(18,20,54,58,0,0,6,6);
+    // 杯内咖啡
+    p.fill(140,90,60); p.noStroke(); p.rect(20,24,50,30,0,0,4,4);
+    // 奶泡
+    p.fill(245,240,235); p.ellipse(45,38,44,16);
+    // 猫爪拉花
+    p.fill(200,150,120);
+    p.ellipse(38,35,7,8); p.ellipse(52,35,7,8);
+    p.ellipse(45,32,7,6);
+    p.ellipse(38,42,5,4); p.ellipse(45,43,5,4); p.ellipse(52,42,5,4);
+    // 杯柄
+    p.noFill(); p.stroke(180,140,120); p.strokeWeight(2);
+    p.arc(72,48,16,22,p.PI*0.75,p.PI*1.25);
+    // 热气
+    p.stroke(200,180,160,120+p.sin(p.frameCount*0.06)*30); p.strokeWeight(1.5);
+    p.line(32,16,28,6); p.line(45,14,45,4); p.line(58,16,62,6);
+  };
+});
+
+// 喵喵奶茶插画
+new p5(function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(90, 90); c.parent('img-tea'); p.pixelDensity(1);
+  };
+  p.draw = function() {
+    p.background(250,238,225);
+    // 奶茶杯
+    p.fill(255); p.stroke(200,160,130); p.strokeWeight(1.5);
+    p.rect(20,18,50,62,0,0,6,6);
+    // 杯中奶茶
+    p.fill(220,170,120); p.noStroke(); p.rect(22,22,46,38,0,0,4,4);
+    // 珍珠
+    p.fill(80,50,30);
+    p.circle(35,50,7); p.circle(50,45,6); p.circle(42,54,7);
+    p.circle(55,52,6); p.circle(30,46,6);
+    // 猫耳杯套
+    p.fill(255,180,140); p.noStroke();
+    p.rect(18,40,54,16,4);
+    p.triangle(20,40,12,30,28,40);
+    p.triangle(70,40,62,30,78,40);
+    // 吸管
+    p.stroke(180,160,140); p.strokeWeight(2.5);
+    p.line(52,18,52,0);
+  };
+});
+
+// 小鱼干套餐插画
+new p5(function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(90, 90); c.parent('img-fish'); p.pixelDensity(1);
+  };
+  p.draw = function() {
+    p.background(252,245,232);
+    // 盘子
+    p.fill(250,245,240); p.stroke(200,180,160); p.strokeWeight(1.5);
+    p.ellipse(45,52,72,48);
+    p.fill(255); p.ellipse(45,52,60,38);
+    // 小鱼干×3
+    p.fill(240,170,120); p.noStroke();
+    for (let i=0;i<3;i++) {
+      let fx=28+i*17, fy=46+i*3;
+      p.ellipse(fx,fy,18,6);
+      p.triangle(fx+8,fy,fx+14,fy-4,fx+14,fy+4);
+      p.fill(40,25,15); p.circle(fx-4,fy-1,1.5);
+    }
+    // 猫形饼干
+    p.fill(230,200,160);
+    p.ellipse(58,60,10,8);
+    p.triangle(55,56,52,50,58,56);
+    p.triangle(61,56,64,50,58,56);
+    // 布丁杯
+    p.fill(250,230,180); p.rect(22,58,14,12,2,2,4,4);
+    p.fill(255,200,100); p.ellipse(29,58,10,4);
+    // topping
+    p.fill(200,120,80); p.circle(29,56,3);
+  };
+});
+</script>
+</body>
+</html>
